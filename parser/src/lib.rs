@@ -1,6 +1,7 @@
 mod comment;
 mod instruction;
 mod label;
+mod register;
 
 use arch::Assembly;
 use nom::{
@@ -42,7 +43,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use arch::{Argument, Assembly, Operation, Token};
+    use arch::{Argument, Assembly, Operation, RegisterKind, Token};
 
     use crate::Parser;
 
@@ -51,11 +52,15 @@ mod tests {
         let src = r#"
 # A basic program
 start:
-add r0 1
-sub r5 r0
+add $r0 1
+sub $r5 $r0
 
 # Jump
 jmp start
+
+# Print stack pointer and program counter
+dbg $sp
+dbg $pc
 "#;
         let parser = Parser::new_string(src.to_string());
         let assembly = parser.parse();
@@ -72,11 +77,23 @@ jmp start
                     },
                     Token::Instruction {
                         operation: Operation::Add,
-                        args: vec![Argument::Register { id: 0 }, Argument::Int { value: 1 }]
+                        args: vec![
+                            Argument::Register {
+                                kind: RegisterKind::Regular { id: 0 }
+                            },
+                            Argument::Int { value: 1 }
+                        ]
                     },
                     Token::Instruction {
                         operation: Operation::Sub,
-                        args: vec![Argument::Register { id: 5 }, Argument::Register { id: 0 }]
+                        args: vec![
+                            Argument::Register {
+                                kind: RegisterKind::Regular { id: 5 }
+                            },
+                            Argument::Register {
+                                kind: RegisterKind::Regular { id: 0 }
+                            }
+                        ]
                     },
                     Token::Comment {
                         text: String::from(" Jump")
@@ -85,6 +102,21 @@ jmp start
                         operation: Operation::Jmp,
                         args: vec![Argument::Label {
                             name: String::from("start")
+                        }]
+                    },
+                    Token::Comment {
+                        text: String::from(" Print stack pointer and program counter")
+                    },
+                    Token::Instruction {
+                        operation: Operation::Dbg,
+                        args: vec![Argument::Register {
+                            kind: RegisterKind::StackPointer
+                        }]
+                    },
+                    Token::Instruction {
+                        operation: Operation::Dbg,
+                        args: vec![Argument::Register {
+                            kind: RegisterKind::ProgramCounter
                         }]
                     }
                 ]

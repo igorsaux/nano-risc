@@ -49,9 +49,9 @@ mod tests {
     #[test]
     fn add() {
         let source = r#"
-            add r0 0 1
-            add r1 0 1
-            add r2 r0 r1
+            add $r0 0 1
+            add $r1 0 1
+            add $r2 $r0 $r1
         "#;
         let mut vm = create_vm_from(source);
 
@@ -68,9 +68,9 @@ mod tests {
     #[test]
     fn sub_mov() {
         let source = r#"
-            mov 4 r0
-            mov 2 r1
-            sub r0 r0 r1
+            mov 4 $r0
+            mov 2 $r1
+            sub $r0 $r0 $r1
         "#;
         let mut vm = create_vm_from(source);
 
@@ -90,7 +90,7 @@ mod tests {
     fn jump() {
         let source = r#"
             start:
-                add r0 0 1
+                add $r0 0 1
 
                 jmp start
         "#;
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn yld() {
         let source = r#"
-            add r0 0 1
+            add $r0 0 1
 
             yield
         "#;
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn mul() {
         let source = r#"
-            mul r0 5 2
+            mul $r0 5 2
         "#;
         let mut vm = create_vm_from(source);
 
@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn div() {
         let source = r#"
-            div r0 10 5
+            div $r0 10 5
         "#;
         let mut vm = create_vm_from(source);
 
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn div_by_zero() {
         let source = r#"
-            div r0 10 0
+            div $r0 10 0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn r#mod() {
         let source = r#"
-            mod r0 10 6
+            mod $r0 10 6
         "#;
         let mut vm = create_vm_from(source);
 
@@ -168,7 +168,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -184,7 +184,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -200,7 +200,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -216,7 +216,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -232,7 +232,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -248,7 +248,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -264,7 +264,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -280,7 +280,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -296,7 +296,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -312,7 +312,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -328,7 +328,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -344,7 +344,7 @@ mod tests {
             yield
 
             success:
-            mov 1 r0
+            mov 1 $r0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn seq() {
         let source = r#"
-            seq r0 0 0
+            seq $r0 0 0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -367,7 +367,7 @@ mod tests {
     #[test]
     fn sge() {
         let source = r#"
-            sge r0 5 5
+            sge $r0 5 5
         "#;
         let mut vm = create_vm_from(source);
 
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn sgt() {
         let source = r#"
-            sgt r0 10 5
+            sgt $r0 10 5
         "#;
         let mut vm = create_vm_from(source);
 
@@ -389,7 +389,7 @@ mod tests {
     #[test]
     fn sle() {
         let source = r#"
-            sle r0 5 5
+            sle $r0 5 5
         "#;
         let mut vm = create_vm_from(source);
 
@@ -400,7 +400,7 @@ mod tests {
     #[test]
     fn slt() {
         let source = r#"
-            sle r0 5 10
+            sle $r0 5 10
         "#;
         let mut vm = create_vm_from(source);
 
@@ -411,7 +411,7 @@ mod tests {
     #[test]
     fn sne() {
         let source = r#"
-            sne r0 22 11
+            sne $r0 22 11
         "#;
         let mut vm = create_vm_from(source);
 
@@ -422,7 +422,7 @@ mod tests {
     #[test]
     fn seqz() {
         let source = r#"
-            seqz r0 0
+            seqz $r0 0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -433,7 +433,7 @@ mod tests {
     #[test]
     fn sgez() {
         let source = r#"
-            sgez r0 0
+            sgez $r0 0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -444,7 +444,7 @@ mod tests {
     #[test]
     fn sgtz() {
         let source = r#"
-            sgez r0 5
+            sgez $r0 5
         "#;
         let mut vm = create_vm_from(source);
 
@@ -455,7 +455,7 @@ mod tests {
     #[test]
     fn slez() {
         let source = r#"
-            slez r0 0
+            slez $r0 0
         "#;
         let mut vm = create_vm_from(source);
 
@@ -466,7 +466,7 @@ mod tests {
     #[test]
     fn sltz() {
         let source = r#"
-            slez r0 -10
+            slez $r0 -10
         "#;
         let mut vm = create_vm_from(source);
 
@@ -477,7 +477,7 @@ mod tests {
     #[test]
     fn snez() {
         let source = r#"
-            snez r0 25
+            snez $r0 25
         "#;
         let mut vm = create_vm_from(source);
 

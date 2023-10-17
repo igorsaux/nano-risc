@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use arch::{Operation, Token};
+use arch::{Argument, Operation, Token};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
@@ -13,6 +13,8 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
+
+use crate::register;
 
 pub fn parse(source: &[u8]) -> IResult<&[u8], Token> {
     alt((self::parse_with_args, self::parse_single))(source)
@@ -46,17 +48,12 @@ fn parse_with_args(source: &[u8]) -> IResult<&[u8], Token> {
     })
 }
 
-fn register_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
-    preceded(tag("r"), character::complete::u8)(source)
-        .map(|(remain, id)| (remain, arch::Argument::Register { id: id as usize }))
-}
-
-fn pin_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
+fn pin_arg(source: &[u8]) -> IResult<&[u8], Argument> {
     preceded(tag("p"), character::complete::u8)(source)
-        .map(|(remain, id)| (remain, arch::Argument::Pin { id: id as usize }))
+        .map(|(remain, id)| (remain, Argument::Pin { id: id as usize }))
 }
 
-fn int_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
+fn int_arg(source: &[u8]) -> IResult<&[u8], Argument> {
     pair(opt(alt((tag("+"), tag("-")))), character::complete::i32)(source).map(
         |(remain, (sign, value))| {
             let sign = sign
@@ -65,7 +62,7 @@ fn int_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
 
             (
                 remain,
-                arch::Argument::Int {
+                Argument::Int {
                     value: str::parse(&format!("{sign}{value}")).unwrap(),
                 },
             )
@@ -73,7 +70,7 @@ fn int_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
     )
 }
 
-fn hex_int_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
+fn hex_int_arg(source: &[u8]) -> IResult<&[u8], Argument> {
     pair(
         opt(alt((tag("+"), tag("-")))),
         preceded(tag("0x"), hex_digit1),
@@ -86,14 +83,14 @@ fn hex_int_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
 
         (
             remain,
-            arch::Argument::Int {
+            Argument::Int {
                 value: i32::from_str_radix(&format!("{sign}{value}"), 16).unwrap(),
             },
         )
     })
 }
 
-fn float_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
+fn float_arg(source: &[u8]) -> IResult<&[u8], Argument> {
     pair(
         opt(alt((tag("+"), tag("-")))),
         recognize(separated_pair(
@@ -110,36 +107,40 @@ fn float_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
 
         (
             remain,
-            arch::Argument::Float {
+            Argument::Float {
                 value: f32::from_str(&format!("{sign}{value}")).unwrap(),
             },
         )
     })
 }
 
-fn string_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
+fn string_arg(source: &[u8]) -> IResult<&[u8], Argument> {
     delimited(tag("\""), take_till(|c| c == b'"'), tag("\""))(source).map(|(remain, value)| {
         (
             remain,
-            arch::Argument::String {
+            Argument::String {
                 value: String::from_utf8(value.to_vec()).unwrap(),
             },
         )
     })
 }
 
-fn label_arg(source: &[u8]) -> IResult<&[u8], arch::Argument> {
+fn label_arg(source: &[u8]) -> IResult<&[u8], Argument> {
     alpha1(source).map(|(remain, value)| {
         (
             remain,
-            arch::Argument::Label {
+            Argument::Label {
                 name: String::from_utf8(value.to_vec()).unwrap(),
             },
         )
     })
 }
 
-fn arg_parser(source: &[u8]) -> IResult<&[u8], arch::Argument> {
+fn register_arg(source: &[u8]) -> IResult<&[u8], Argument> {
+    register::parse(source).map(|(remain, kind)| (remain, Argument::Register { kind }))
+}
+
+fn arg_parser(source: &[u8]) -> IResult<&[u8], Argument> {
     terminated(
         alt((
             self::register_arg,
@@ -166,7 +167,7 @@ fn operation_parser(source: &[u8]) -> IResult<&[u8], String> {
 
 #[cfg(test)]
 mod tests {
-    use arch::Token;
+    use arch::{Argument, Operation, RegisterKind, Token};
 
     #[test]
     fn parse_single_instruction() {
@@ -177,7 +178,7 @@ mod tests {
             Ok((
                 &[] as &[u8],
                 Token::Instruction {
-                    operation: arch::Operation::Add,
+                    operation: Operation::Add,
                     args: Vec::new()
                 }
             ))
@@ -187,7 +188,7 @@ mod tests {
     #[test]
     fn parse_instruction_with_args() {
         let instruction = super::parse(
-            "add r1 p4 78 -99 0xFF -0xDD 12.66 -4.12 \"Hello, world!\" start".as_bytes(),
+            "add $r1 p4 78 -99 0xFF -0xDD 12.66 -4.12 \"Hello, world!\" start".as_bytes(),
         );
 
         assert_eq!(
@@ -195,20 +196,22 @@ mod tests {
             Ok((
                 &[] as &[u8],
                 Token::Instruction {
-                    operation: arch::Operation::Add,
+                    operation: Operation::Add,
                     args: vec![
-                        arch::Argument::Register { id: 1 },
-                        arch::Argument::Pin { id: 4 },
-                        arch::Argument::Int { value: 78 },
-                        arch::Argument::Int { value: -99 },
-                        arch::Argument::Int { value: 0xFF },
-                        arch::Argument::Int { value: -0xDD },
-                        arch::Argument::Float { value: 12.66 },
-                        arch::Argument::Float { value: -4.12 },
-                        arch::Argument::String {
+                        Argument::Register {
+                            kind: RegisterKind::Regular { id: 1 }
+                        },
+                        Argument::Pin { id: 4 },
+                        Argument::Int { value: 78 },
+                        Argument::Int { value: -99 },
+                        Argument::Int { value: 0xFF },
+                        Argument::Int { value: -0xDD },
+                        Argument::Float { value: 12.66 },
+                        Argument::Float { value: -4.12 },
+                        Argument::String {
                             value: String::from("Hello, world!")
                         },
-                        arch::Argument::Label {
+                        Argument::Label {
                             name: String::from("start")
                         }
                     ]

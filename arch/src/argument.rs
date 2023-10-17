@@ -1,6 +1,8 @@
+use crate::RegisterKind;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Argument {
-    Register { id: usize },
+    Register { kind: RegisterKind },
     Pin { id: usize },
     Int { value: i32 },
     Float { value: f32 },

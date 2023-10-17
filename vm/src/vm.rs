@@ -1,15 +1,14 @@
-use std::collections::VecDeque;
-
-use arch::{Argument, Operation, Token};
+use arch::{Argument, Operation, RegisterKind, Token};
 
 use crate::{Program, RuntimeError, VMStatus, Value};
 
 #[derive(Debug, Clone, Default)]
 pub struct VM {
     pub registers: [Value; crate::REGISTERS_COUNT],
-    pub stack: VecDeque<Value>,
+    pub stack: [Option<Value>; crate::STACK_SIZE],
     pub program: Option<Program>,
     pub pc: usize,
+    pub sp: usize,
 }
 
 impl VM {
@@ -62,7 +61,10 @@ impl VM {
     ) -> Result<Option<VMStatus>, RuntimeError> {
         match operation {
             Operation::Add | Operation::Sub | Operation::Mul | Operation::Div => {
-                let Argument::Register { id: register } = args[0] else {
+                let Argument::Register {
+                    kind: RegisterKind::Regular { id: register },
+                } = args[0]
+                else {
                     unreachable!()
                 };
 
@@ -86,7 +88,10 @@ impl VM {
             Operation::Mov => {
                 let a = self.argument_to_value(&args[0])?;
 
-                let Argument::Register { id: register } = args[1] else {
+                let Argument::Register {
+                    kind: RegisterKind::Regular { id: register },
+                } = args[1]
+                else {
                     unreachable!()
                 };
 
@@ -110,10 +115,13 @@ impl VM {
                     Value::Float { value } => println!("{value}"),
                     Value::String { value } => println!("{value}"),
                 }
-            },
+            }
             Operation::Yield => return Ok(Some(VMStatus::Yield)),
             Operation::Mod => {
-                let Argument::Register { id: register } = args[0] else {
+                let Argument::Register {
+                    kind: RegisterKind::Regular { id: register },
+                } = args[0]
+                else {
                     unreachable!()
                 };
 
@@ -193,7 +201,10 @@ impl VM {
             | Operation::Sle
             | Operation::Slt
             | Operation::Sne => {
-                let Argument::Register { id: register } = &args[0] else {
+                let Argument::Register {
+                    kind: RegisterKind::Regular { id: register },
+                } = &args[0]
+                else {
                     unreachable!()
                 };
                 let a = self.argument_to_value(&args[1])?;
@@ -219,7 +230,10 @@ impl VM {
             | Operation::Slez
             | Operation::Sltz
             | Operation::Snez => {
-                let Argument::Register { id: register } = &args[0] else {
+                let Argument::Register {
+                    kind: RegisterKind::Regular { id: register },
+                } = &args[0]
+                else {
                     unreachable!()
                 };
                 let a = self.argument_to_float(&args[1])?;
@@ -243,6 +257,18 @@ impl VM {
         Ok(None)
     }
 
+    fn register_to_value(&self, register: RegisterKind) -> Result<Value, RuntimeError> {
+        match register {
+            RegisterKind::Regular { id } => Ok(self.registers[id].clone()),
+            RegisterKind::ProgramCounter => Ok(Value::Float {
+                value: self.pc as f32,
+            }),
+            RegisterKind::StackPointer => Ok(Value::Float {
+                value: self.sp as f32,
+            }),
+        }
+    }
+
     fn argument_to_float(&self, argument: &Argument) -> Result<f32, RuntimeError> {
         match self.argument_to_value(argument)? {
             Value::Float { value } => Ok(value),
@@ -254,12 +280,7 @@ impl VM {
 
     fn argument_to_value(&self, argument: &Argument) -> Result<Value, RuntimeError> {
         match argument {
-            Argument::Register { id } => match &self.registers[*id] {
-                Value::String { value } => Ok(Value::String {
-                    value: value.clone(),
-                }),
-                Value::Float { value } => Ok(Value::Float { value: *value }),
-            },
+            Argument::Register { kind } => self.register_to_value(*kind),
             Argument::Int { value } => Ok(Value::Float {
                 value: *value as f32,
             }),
