@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100vh;
+  background: #212121;
+  color: white;
+}
+
+@layer components {
+  .btn-primary {
+    @apply transition-all flex items-center gap-1 rounded-sm px-2 bg-[#3a3a3a] hover:bg-[#535353];
+  }
+}

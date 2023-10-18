@@ -2,26 +2,41 @@ use arch::{Argument, Operation, RegisterKind, Token};
 
 use crate::{Program, RuntimeError, VMStatus, Value};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Default)]
 pub struct VM {
     pub registers: [Value; crate::REGISTERS_COUNT],
     pub stack: [Option<Value>; crate::STACK_SIZE],
     pub program: Option<Program>,
     pub pc: usize,
     pub sp: usize,
+    pub dbg_callback: Option<Box<dyn Fn(String)>>,
+}
+
+impl std::fmt::Debug for VM {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VM")
+            .field("registers", &self.registers)
+            .field("stack", &self.stack)
+            .field("program", &self.program)
+            .field("pc", &self.pc)
+            .field("sp", &self.sp)
+            .finish()
+    }
 }
 
 impl VM {
     pub fn load_program(&mut self, program: Program) {
-        self.reset();
         self.program = Some(program);
+    }
+
+    pub fn unload_program(&mut self) {
+        self.program = None;
     }
 
     pub fn reset(&mut self) {
         self.pc = 0;
         self.registers = Default::default();
         self.stack = Default::default();
-        self.program = None;
     }
 
     /// Executes 1 instruction.
@@ -109,12 +124,17 @@ impl VM {
                 self.pc = program.labels[name];
             }
             Operation::Dbg => {
-                let value = self.argument_to_value(&args[0])?;
+                let Some(callback) = &self.dbg_callback else {
+                    return Ok(None);
+                };
 
-                match value {
-                    Value::Float { value } => println!("{value}"),
-                    Value::String { value } => println!("{value}"),
-                }
+                let value = self.argument_to_value(&args[0])?;
+                let text = match value {
+                    Value::Float { value } => format!("{value}"),
+                    Value::String { value } => value.to_string(),
+                };
+
+                callback(text)
             }
             Operation::Yield => return Ok(Some(VMStatus::Yield)),
             Operation::Mod => {
