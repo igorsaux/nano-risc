@@ -35,6 +35,7 @@ pub enum Operation {
     Sltz,
     Sne,
     Snez,
+    Halt,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,6 +81,7 @@ impl FromStr for Operation {
             "sltz" => Ok(Self::Sltz),
             "sne" => Ok(Self::Sne),
             "snez" => Ok(Self::Snez),
+            "halt" => Ok(Self::Halt),
             _ => Err(OpeartionParseError::UnknownOperation),
         }
     }

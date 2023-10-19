@@ -484,4 +484,17 @@ mod tests {
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
     }
+
+    #[test]
+    fn halt() {
+        let source = r#"
+            mov 1 $r1
+            halt
+            mov 0 $r0
+        "#;
+        let mut vm = create_vm_from(source);
+
+        assert_eq!(vm.tick(), Ok(VMStatus::Running));
+        assert_eq!(vm.tick(), Ok(VMStatus::Finished))
+    }
 }

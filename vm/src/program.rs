@@ -145,7 +145,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
 
             return Ok(());
         }
-        Operation::Yield => {
+        Operation::Yield | Operation::Halt => {
             if !args.is_empty() {
                 return Err(CompileError::InvalidInstruction {
                     operation,

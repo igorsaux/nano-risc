@@ -272,6 +272,7 @@ impl VM {
                     value: if result { 1.0 } else { 0.0 },
                 }
             }
+            Operation::Halt => return Ok(Some(VMStatus::Finished)),
         }
 
         Ok(None)
