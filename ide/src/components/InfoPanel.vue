@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import type NanoRiscVM from '@/vm';
 import RegistersList from './RegistersList.vue';
 import { VMStatus } from '@/vm';
+import { useAppStore } from '../appStore'
 
-const props = defineProps<{
-	vm: NanoRiscVM
-}>()
+const store = useAppStore()
 
 function statusToString(status: VMStatus): string {
 	if (status === VMStatus.Idle) {
@@ -25,10 +23,12 @@ function statusToString(status: VMStatus): string {
 <template>
 	<div class="p-2">
 		<h2 class="font-bold text-xl">Information</h2>
+
 		<span>
-			<span>Status:</span> <span class="text-neutral-500">{{ statusToString(vm.status)
+			<span>Status:</span> <span class="text-neutral-500">{{ statusToString(store.vm.status)
 			}}</span>
 		</span>
-		<RegistersList :vm="props.vm" />
+
+		<RegistersList />
 	</div>
 </template>

@@ -15,6 +15,7 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.33",
     "monaco-editor": "^0.44.0",
+    "pinia": "^2.1.7",
     "vue": "^3.3.4",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"

@@ -9,6 +9,6 @@ A simple virtual machine and an assembly language created for embedding in games
 - `/ide` - a web IDE.
 - `/web` - WASM bindings.
 - `/cli` - a CLI application for running nRISC's code.
-- `/parser` - an assembly language parser.
+- `/asm` - an assembly language parser and compiler.
 - `/arch` - nRISC's architecture types.
 - `/vm` - a nRISC's VM realization.

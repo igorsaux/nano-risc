@@ -1,8 +1,8 @@
+use crate::{RuntimeError, VMStatus, Value};
+use nano_risc_arch::{
+    Argument, Assembly, AssemblyError, Instruction, Limits, Operation, RegisterKind,
+};
 use std::fmt::Debug;
-
-use arch::{Argument, Operation, RegisterKind, Token};
-
-use crate::{Limits, Program, RuntimeError, VMStatus, Value};
 
 pub type DbgCallback = Box<dyn Fn(String)>;
 
@@ -10,7 +10,7 @@ pub struct VM {
     limits: Limits,
     registers: Vec<Value>,
     stack: Vec<Value>,
-    program: Option<Program>,
+    assembly: Option<Assembly>,
     pc: usize,
     sp: usize,
     dbg_callback: Option<DbgCallback>,
@@ -27,7 +27,7 @@ impl Debug for VM {
         f.debug_struct("VM")
             .field("registers", &self.registers)
             .field("stack", &self.stack)
-            .field("program", &self.program)
+            .field("program", &self.assembly)
             .field("pc", &self.pc)
             .field("sp", &self.sp)
             .finish()
@@ -52,24 +52,36 @@ impl VM {
             limits,
             registers,
             stack: Vec::new(),
-            program: None,
+            assembly: None,
             pc: 0,
             sp: 0,
             dbg_callback: None,
         }
     }
 
-    pub fn load_program(&mut self, program: Program) {
-        self.program = Some(program);
+    pub fn load_assembly(&mut self, assembly: Assembly) -> Result<(), AssemblyError> {
+        assembly.validate(&self.limits)?;
+
+        self.assembly = Some(assembly);
+
+        Ok(())
     }
 
-    pub fn unload_program(&mut self) {
-        self.program = None;
+    pub fn unload_assembly(&mut self) {
+        self.assembly = None;
+    }
+
+    pub fn assembly(&self) -> Option<&Assembly> {
+        self.assembly.as_ref()
     }
 
     pub fn reset(&mut self) {
         self.pc = 0;
-        self.registers = Default::default();
+
+        for register in &mut self.registers {
+            *register = Value::Float { value: 0.0 };
+        }
+
         self.stack = Default::default();
     }
 
@@ -87,11 +99,11 @@ impl VM {
 
     /// Executes 1 instruction.
     pub fn tick(&mut self) -> Result<VMStatus, RuntimeError> {
-        let Some(program) = self.program.as_ref() else {
+        let Some(program) = self.assembly.as_ref() else {
             return Ok(VMStatus::Idle);
         };
 
-        match self.pc.cmp(&program.tokens.len()) {
+        match self.pc.cmp(&program.instructions.len()) {
             std::cmp::Ordering::Equal => return Ok(VMStatus::Finished),
             std::cmp::Ordering::Greater => {
                 return Err(RuntimeError::InvalidPosition { position: self.pc })
@@ -99,21 +111,18 @@ impl VM {
             _ => {}
         };
 
-        let token = &program.tokens[self.pc];
+        let Instruction {
+            operation: op,
+            arguments: args,
+        } = &program.instructions[self.pc];
 
         self.pc += 1;
 
-        if let Token::Instruction { operation, args } = token {
-            // bruh
-            let result = Self::execute_instruction(
-                unsafe { &mut *(self as *const VM as *mut VM) },
-                *operation,
-                args,
-            )?;
-
-            if let Some(status) = result {
-                return Ok(status);
-            }
+        // bruh
+        if let Some(status) =
+            Self::execute_instruction(unsafe { &mut *(self as *const VM as *mut VM) }, *op, args)?
+        {
+            return Ok(status);
         }
 
         Ok(VMStatus::Running)
@@ -357,17 +366,9 @@ impl VM {
             Argument::String { value } => Ok(Value::String {
                 value: value.clone(),
             }),
-            Argument::Label { name } => {
-                let Some(program) = &self.program else {
-                    unreachable!()
-                };
-
-                Ok(Value::Float {
-                    value: program.labels[name] as f32,
-                })
-            }
-            // Argument types should be checked at compilation time
-            _ => unreachable!(),
+            _ => Err(RuntimeError::InvalidType {
+                message: format!("Argument {argument} can't be used as value"),
+            }),
         }
     }
 }

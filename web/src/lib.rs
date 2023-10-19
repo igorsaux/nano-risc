@@ -1,7 +1,12 @@
-use parser::Parser;
+use nano_risc_arch::{Assembly, Limits, SourceUnit};
+use nano_risc_asm::{compiler, parser};
+use nano_risc_vm::{VMStatus, Value, VM};
+use serde::{Deserialize, Serialize};
 use std::{panic, rc::Rc};
-use vm::{Limits, Program, VMStatus, VM};
 use wasm_bindgen::prelude::*;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProgramError {}
 
 #[wasm_bindgen(start)]
 pub fn main() {
@@ -31,12 +36,45 @@ pub fn vm_set_dbg_callback(handle: usize, callback: js_sys::Function) {
 }
 
 #[wasm_bindgen]
-pub fn vm_load_program(handle: usize, code: String) {
+pub fn vm_load_assembly(handle: usize, code: String) -> JsValue {
     let vm = unsafe { &mut *(handle as *mut VM) };
-    let assemby = Parser::new_string(code).parse().unwrap();
-    let program = Program::try_compile(assemby).unwrap();
+    let unit = SourceUnit::new_anonymous(code.as_bytes().to_vec());
 
-    vm.load_program(program);
+    let tokens = match parser::parse(&unit) {
+        Ok(tokens) => tokens,
+        Err(error) => return serde_wasm_bindgen::to_value(&error).unwrap(),
+    };
+
+    let assembly = match compiler::compile(unit, tokens) {
+        Ok(assembly) => assembly,
+        Err(error) => return serde_wasm_bindgen::to_value(&error).unwrap(),
+    };
+
+    match vm.load_assembly(assembly) {
+        Ok(_) => {}
+        Err(error) => return serde_wasm_bindgen::to_value(&error).unwrap(),
+    }
+
+    JsValue::NULL
+}
+
+#[wasm_bindgen]
+pub fn vm_pc_to_location(handle: usize) -> JsValue {
+    let vm = unsafe { &mut *(handle as *mut VM) };
+
+    if let Some(Assembly {
+        debug_info: Some(debug_info),
+        ..
+    }) = vm.assembly()
+    {
+        let Some(location) = debug_info.source_loc.get(&vm.pc()) else {
+            return JsValue::NULL;
+        };
+
+        serde_wasm_bindgen::to_value(&location).unwrap()
+    } else {
+        JsValue::NULL
+    }
 }
 
 #[wasm_bindgen]
@@ -72,8 +110,8 @@ pub fn vm_get_registers(handle: usize) -> js_sys::Array {
 
     for register in vm.registers() {
         match register {
-            vm::Value::Float { value } => array.push(&JsValue::from_f64(*value as f64)),
-            vm::Value::String { value } => array.push(&JsValue::from_str(value)),
+            Value::Float { value } => array.push(&JsValue::from_f64(*value as f64)),
+            Value::String { value } => array.push(&JsValue::from_str(value)),
         };
     }
 

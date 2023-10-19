@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operation {
@@ -36,6 +36,47 @@ pub enum Operation {
     Sne,
     Snez,
     Halt,
+}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operation::Add => f.write_str("add"),
+            Operation::Sub => f.write_str("sub"),
+            Operation::Mov => f.write_str("mov"),
+            Operation::Mul => f.write_str("mul"),
+            Operation::Div => f.write_str("div"),
+            Operation::Mod => f.write_str("mod"),
+            Operation::Jmp => f.write_str("jmp"),
+            Operation::Dbg => f.write_str("dbg"),
+            Operation::Yield => f.write_str("yield"),
+            Operation::Beq => f.write_str("beq"),
+            Operation::Beqz => f.write_str("beqz"),
+            Operation::Bge => f.write_str("bge"),
+            Operation::Bgez => f.write_str("bgez"),
+            Operation::Bgt => f.write_str("bgt"),
+            Operation::Bgtz => f.write_str("bgtz"),
+            Operation::Ble => f.write_str("ble"),
+            Operation::Blez => f.write_str("blez"),
+            Operation::Blt => f.write_str("blt"),
+            Operation::Bltz => f.write_str("bltz"),
+            Operation::Bne => f.write_str("bne"),
+            Operation::Bnez => f.write_str("bnez"),
+            Operation::Seq => f.write_str("seq"),
+            Operation::Seqz => f.write_str("seqz"),
+            Operation::Sge => f.write_str("sge"),
+            Operation::Sgez => f.write_str("sgez"),
+            Operation::Sgt => f.write_str("sgt"),
+            Operation::Sgtz => f.write_str("sgtz"),
+            Operation::Sle => f.write_str("sle"),
+            Operation::Slez => f.write_str("slez"),
+            Operation::Slt => f.write_str("slt"),
+            Operation::Sltz => f.write_str("sltz"),
+            Operation::Sne => f.write_str("sne"),
+            Operation::Snez => f.write_str("snez"),
+            Operation::Halt => f.write_str("halt"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

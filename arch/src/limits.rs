@@ -4,12 +4,14 @@ use serde::{Deserialize, Serialize};
 pub struct Limits {
     #[serde(alias = "regularRegisters")]
     pub regular_registers: usize,
+    pub pins: usize,
 }
 
 impl Default for Limits {
     fn default() -> Self {
         Self {
             regular_registers: 16,
+            pins: 8,
         }
     }
 }

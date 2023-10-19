@@ -1,2 +1,2 @@
 [workspace]
-members = ["cli", "parser", "vm", "arch", "web", "tests"]
+members = ["cli", "asm", "vm", "arch", "web", "tests"]

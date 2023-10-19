@@ -1,14 +1,16 @@
 #[cfg(test)]
 mod vm_tests {
-    use parser::Parser;
-    use vm::{Program, RuntimeError, VMStatus, Value, VM};
+    use nano_risc_arch::SourceUnit;
+    use nano_risc_asm::{compiler, parser};
+    use nano_risc_vm::{RuntimeError, VMStatus, Value, VM};
 
     fn create_vm_from(source: &str) -> VM {
-        let assembly = Parser::new_string(source.to_string()).parse().unwrap();
-        let program = Program::try_compile(assembly).unwrap();
+        let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
+        let tokens = parser::parse(&unit).unwrap();
+        let assembly = compiler::compile(unit, tokens).unwrap();
         let mut vm = VM::default();
 
-        vm.load_program(program);
+        vm.load_assembly(assembly).unwrap();
 
         vm
     }
@@ -500,8 +502,11 @@ mod vm_tests {
 
 #[cfg(test)]
 mod compilation_tests {
-    use parser::Parser;
-    use vm::{CompileError, Program};
+    use nano_risc_arch::SourceUnit;
+    use nano_risc_asm::{
+        compiler::{self, CompilationErrorKind},
+        parser,
+    };
 
     #[test]
     fn duplicate_labels() {
@@ -512,10 +517,12 @@ mod compilation_tests {
             jmp start
     "#;
 
-        let assembly = Parser::new_string(source.to_string()).parse().unwrap();
+        let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
+        let tokens = parser::parse(&unit).unwrap();
+        let assembly = compiler::compile(unit, tokens);
         assert_eq!(
-            Program::try_compile(assembly),
-            Err(CompileError::DuplicatedLabel {
+            assembly.map_err(|err| err.kind().clone()),
+            Err(CompilationErrorKind::DuplicateLabel {
                 name: String::from("start")
             })
         );

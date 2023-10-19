@@ -1,8 +1,0 @@
-[package]
-name = "parser"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-arch = { package = "arch", path = "../arch" }
-nom = "7.1.3"

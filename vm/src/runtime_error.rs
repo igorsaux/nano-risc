@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use arch::RegisterKind;
+use nano_risc_arch::RegisterKind;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RuntimeError {

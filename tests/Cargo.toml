@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-parser = { package = "parser", path = "../parser" }
-vm = { package = "vm", path = "../vm" }
+nano-risc-asm = { package = "nano-risc-asm", path = "../asm" }
+nano-risc-arch = { package = "nano-risc-arch", path = "../arch" }
+nano-risc-vm = { package = "nano-risc-vm", path = "../vm" }

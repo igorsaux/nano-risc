@@ -11,20 +11,28 @@ import NanoRiscVM from './vm';
 
 const sourceCode = ref(exampleProgram)
 const vm = ref(new NanoRiscVM(null))
+
+function loadProgram() {
+  if (!vm.value) {
+    return
+  }
+
+  vm.value.loadProgram(sourceCode.value)
+}
 </script>
 
 <template>
   <div class="flex h-full w-full">
     <div class="flex flex-col w-full h-full">
-      <VMControl @vm-step="vm.tick()" @vm-compile="vm.loadProgram(sourceCode)" @vm-run="vm.run()" @vm-stop="vm.reset()" />
+      <VMControl @vm-step="vm.tick()" @vm-compile="loadProgram" @vm-run="vm.run()" @vm-stop="vm.reset()" />
 
       <div class="flex flex-col w-full h-full">
-        <CodeEditor v-model:content="sourceCode" />
+        <CodeEditor :vm="vm" v-model:content="sourceCode" />
         <TheTerminal :vm="vm" />
       </div>
     </div>
 
-    <InfoPanel :vm="vm" />
+    <InfoPanel />
   </div>
 </template>
 

@@ -1,7 +1,9 @@
 use std::{fs, path::PathBuf};
 
 use clap::Parser;
-use vm::{Program, VMStatus, VM};
+use nano_risc_arch::SourceUnit;
+use nano_risc_asm::{compiler, parser};
+use nano_risc_vm::{VMStatus, VM};
 
 #[derive(Debug, Clone, Parser)]
 pub struct Args {
@@ -11,15 +13,16 @@ pub struct Args {
 
 fn main() {
     let app = Args::parse();
-    let assembly = parser::Parser::new_bytes(fs::read(app.assembly).unwrap())
-        .parse()
-        .unwrap();
-
-    let program = Program::try_compile(assembly).unwrap();
+    let unit = SourceUnit::new(
+        app.assembly.display().to_string(),
+        fs::read(app.assembly).unwrap(),
+    );
+    let tokens = parser::parse(&unit).unwrap();
+    let assembly = compiler::compile(unit, tokens).unwrap();
     let mut vm = VM::default();
 
     vm.set_dbg_callback(Box::new(|message| println!("{message}")));
-    vm.load_program(program);
+    vm.load_assembly(assembly).unwrap();
 
     loop {
         match vm.tick() {

@@ -1,8 +1,11 @@
 [package]
-name = "nano-risc-vm"
+name = "nano-risc-asm"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 nano-risc-arch = { package = "nano-risc-arch", path = "../arch" }
+nom = "7.1.3"
+nom_locate = "4.2.0"
+pretty_assertions = "1.4.0"
 serde = { version = "1.0.189", features = ["derive"] }
