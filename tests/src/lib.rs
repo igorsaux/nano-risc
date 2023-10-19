@@ -27,9 +27,9 @@ mod vm_tests {
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Finished));
 
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 });
-        assert_eq!(vm.registers[1], Value::Float { value: 1.0 });
-        assert_eq!(vm.registers[2], Value::Float { value: 2.0 });
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 });
+        assert_eq!(vm.registers()[1], Value::Float { value: 1.0 });
+        assert_eq!(vm.registers()[2], Value::Float { value: 2.0 });
     }
 
     #[test]
@@ -42,13 +42,13 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 4.0 });
+        assert_eq!(vm.registers()[0], Value::Float { value: 4.0 });
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[1], Value::Float { value: 2.0 });
+        assert_eq!(vm.registers()[1], Value::Float { value: 2.0 });
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 2.0 });
+        assert_eq!(vm.registers()[0], Value::Float { value: 2.0 });
 
         assert_eq!(vm.tick(), Ok(VMStatus::Finished));
     }
@@ -62,13 +62,13 @@ mod vm_tests {
                 jmp start
         "#;
         let mut vm = create_vm_from(source);
-        assert_eq!(vm.pc, 0);
+        assert_eq!(vm.pc(), 0);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.pc, 1);
+        assert_eq!(vm.pc(), 1);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.pc, 0);
+        assert_eq!(vm.pc(), 0);
     }
 
     #[test]
@@ -80,13 +80,13 @@ mod vm_tests {
                 jmp 0
         "#;
         let mut vm = create_vm_from(source);
-        assert_eq!(vm.pc, 0);
+        assert_eq!(vm.pc(), 0);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.pc, 1);
+        assert_eq!(vm.pc(), 1);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.pc, 0);
+        assert_eq!(vm.pc(), 0);
     }
 
     #[test]
@@ -111,7 +111,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 10.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 10.0 })
     }
 
     #[test]
@@ -122,7 +122,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 2.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 2.0 })
     }
 
     #[test]
@@ -143,7 +143,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 4.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 4.0 })
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -175,7 +175,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -191,7 +191,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -207,7 +207,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -239,7 +239,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -255,7 +255,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -271,7 +271,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -287,7 +287,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -303,7 +303,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -319,7 +319,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -335,7 +335,7 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -346,7 +346,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -357,7 +357,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -368,7 +368,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -379,7 +379,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -390,7 +390,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -401,7 +401,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -412,7 +412,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -423,7 +423,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -434,7 +434,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -445,7 +445,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -456,7 +456,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -467,7 +467,7 @@ mod vm_tests {
         let mut vm = create_vm_from(source);
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
-        assert_eq!(vm.registers[0], Value::Float { value: 1.0 })
+        assert_eq!(vm.registers()[0], Value::Float { value: 1.0 })
     }
 
     #[test]
@@ -481,6 +481,20 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(vm.tick(), Ok(VMStatus::Finished))
+    }
+
+    #[test]
+    fn invalid_jmp() {
+        let source = r#"
+            jmp 9999
+        "#;
+        let mut vm = create_vm_from(source);
+
+        assert_eq!(vm.tick(), Ok(VMStatus::Running));
+        assert_eq!(
+            vm.tick(),
+            Err(RuntimeError::InvalidPosition { position: 9999 })
+        )
     }
 }
 

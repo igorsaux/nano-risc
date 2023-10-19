@@ -2,14 +2,16 @@ use arch::{Argument, Operation, RegisterKind, Token};
 
 use crate::{Program, RuntimeError, VMStatus, Value, REGISTERS_COUNT};
 
+pub type DbgCallback = Box<dyn Fn(String)>;
+
 #[derive(Default)]
 pub struct VM {
-    pub registers: [Value; crate::REGISTERS_COUNT],
-    pub stack: [Option<Value>; crate::STACK_SIZE],
-    pub program: Option<Program>,
-    pub pc: usize,
-    pub sp: usize,
-    pub dbg_callback: Option<Box<dyn Fn(String)>>,
+    registers: [Value; crate::REGISTERS_COUNT],
+    stack: [Option<Value>; crate::STACK_SIZE],
+    program: Option<Program>,
+    pc: usize,
+    sp: usize,
+    dbg_callback: Option<DbgCallback>,
 }
 
 impl std::fmt::Debug for VM {
@@ -39,15 +41,31 @@ impl VM {
         self.stack = Default::default();
     }
 
+    pub fn registers(&self) -> &[Value; crate::REGISTERS_COUNT] {
+        &self.registers
+    }
+
+    pub fn pc(&self) -> usize {
+        self.pc
+    }
+
+    pub fn set_dbg_callback(&mut self, callback: DbgCallback) {
+        self.dbg_callback = Some(callback)
+    }
+
     /// Executes 1 instruction.
     pub fn tick(&mut self) -> Result<VMStatus, RuntimeError> {
         let Some(program) = self.program.as_ref() else {
             return Ok(VMStatus::Idle);
         };
 
-        if self.pc >= program.tokens.len() {
-            return Ok(VMStatus::Finished);
-        }
+        match self.pc.cmp(&program.tokens.len()) {
+            std::cmp::Ordering::Equal => return Ok(VMStatus::Finished),
+            std::cmp::Ordering::Greater => {
+                return Err(RuntimeError::InvalidPosition { position: self.pc })
+            }
+            _ => {}
+        };
 
         let token = &program.tokens[self.pc];
 

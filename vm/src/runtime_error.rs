@@ -6,4 +6,5 @@ pub enum RuntimeError {
     DividedByZero,
     RegisterIsReadOnly { register: RegisterKind },
     InvalidRegister { register: RegisterKind },
+    InvalidPosition { position: usize },
 }

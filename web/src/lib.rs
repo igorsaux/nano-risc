@@ -22,7 +22,7 @@ pub fn vm_release(handle: usize) {
 pub fn vm_set_dbg_callback(handle: usize, callback: js_sys::Function) {
     let vm = unsafe { &mut *(handle as *mut VM) };
 
-    vm.dbg_callback = Some(Box::new(move |text| {
+    vm.set_dbg_callback(Box::new(move |text| {
         let value = JsValue::from_str(&text);
         callback.call1(&JsValue::UNDEFINED, &value).unwrap();
     }))
@@ -41,7 +41,7 @@ pub fn vm_load_program(handle: usize, code: String) {
 pub fn vm_get_pc(handle: usize) -> usize {
     let vm = unsafe { &mut *(handle as *mut VM) };
 
-    vm.pc
+    vm.pc()
 }
 
 #[wasm_bindgen]
@@ -68,7 +68,7 @@ pub fn vm_get_registers(handle: usize) -> js_sys::Array {
     let vm = unsafe { &mut *(handle as *mut VM) };
     let array = js_sys::Array::new();
 
-    for register in &vm.registers {
+    for register in vm.registers() {
         match register {
             vm::Value::Float { value } => array.push(&JsValue::from_f64(*value as f64)),
             vm::Value::String { value } => array.push(&JsValue::from_str(value)),
