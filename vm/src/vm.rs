@@ -1,6 +1,6 @@
 use arch::{Argument, Operation, RegisterKind, Token};
 
-use crate::{Program, RuntimeError, VMStatus, Value};
+use crate::{Program, RuntimeError, VMStatus, Value, REGISTERS_COUNT};
 
 #[derive(Default)]
 pub struct VM {
@@ -69,59 +69,84 @@ impl VM {
         Ok(VMStatus::Running)
     }
 
+    pub fn write_register(
+        &mut self,
+        register: RegisterKind,
+        value: Value,
+    ) -> Result<(), RuntimeError> {
+        match register {
+            RegisterKind::Regular { id } => {
+                if id >= REGISTERS_COUNT {
+                    return Err(RuntimeError::InvalidRegister { register });
+                }
+
+                self.registers[id] = value;
+            }
+            RegisterKind::ProgramCounter => match value {
+                Value::Float { value } => self.pc = value as usize,
+                Value::String { .. } => {
+                    return Err(RuntimeError::InvalidType {
+                        message: String::from("PC does not accept string"),
+                    })
+                }
+            },
+            RegisterKind::StackPointer => {
+                return Err(RuntimeError::RegisterIsReadOnly { register })
+            }
+        };
+
+        Ok(())
+    }
+
     fn execute_instruction(
         &mut self,
         operation: Operation,
         args: &[Argument],
     ) -> Result<Option<VMStatus>, RuntimeError> {
         match operation {
-            Operation::Add | Operation::Sub | Operation::Mul | Operation::Div => {
-                let Argument::Register {
-                    kind: RegisterKind::Regular { id: register },
-                } = args[0]
-                else {
+            Operation::Add | Operation::Sub | Operation::Mul | Operation::Div | Operation::Mod => {
+                let Argument::Register { register } = args[0] else {
                     unreachable!()
                 };
 
                 let a = self.argument_to_float(&args[1])?;
                 let b = self.argument_to_float(&args[2])?;
-
-                match operation {
-                    Operation::Add => self.registers[register] = Value::Float { value: a + b },
-                    Operation::Sub => self.registers[register] = Value::Float { value: a - b },
-                    Operation::Mul => self.registers[register] = Value::Float { value: a * b },
+                let result = match operation {
+                    Operation::Add => Value::Float { value: a + b },
+                    Operation::Sub => Value::Float { value: a - b },
+                    Operation::Mul => Value::Float { value: a * b },
                     Operation::Div => {
                         if b == 0.0 {
                             return Err(RuntimeError::DividedByZero);
                         }
 
-                        self.registers[register] = Value::Float { value: a / b }
+                        Value::Float { value: a / b }
+                    }
+                    Operation::Mod => {
+                        if b == 0.0 {
+                            return Err(RuntimeError::DividedByZero);
+                        }
+
+                        Value::Float { value: a % b }
                     }
                     _ => unreachable!(),
-                }
+                };
+
+                self.write_register(register, result)?;
             }
             Operation::Mov => {
                 let a = self.argument_to_value(&args[0])?;
 
-                let Argument::Register {
-                    kind: RegisterKind::Regular { id: register },
-                } = args[1]
-                else {
+                let Argument::Register { register } = args[1] else {
                     unreachable!()
                 };
 
-                self.registers[register] = a;
+                self.write_register(register, a)?
             }
             Operation::Jmp => {
-                let Some(program) = &self.program else {
-                    unreachable!()
-                };
+                let value = self.argument_to_value(&args[0])?;
 
-                let Argument::Label { name } = &args[0] else {
-                    unreachable!()
-                };
-
-                self.pc = program.labels[name];
+                self.write_register(RegisterKind::ProgramCounter, value)?
             }
             Operation::Dbg => {
                 let Some(callback) = &self.dbg_callback else {
@@ -137,23 +162,6 @@ impl VM {
                 callback(text)
             }
             Operation::Yield => return Ok(Some(VMStatus::Yield)),
-            Operation::Mod => {
-                let Argument::Register {
-                    kind: RegisterKind::Regular { id: register },
-                } = args[0]
-                else {
-                    unreachable!()
-                };
-
-                let a = self.argument_to_float(&args[1])?;
-                let b = self.argument_to_float(&args[2])?;
-
-                if b == 0.0 {
-                    return Err(RuntimeError::DividedByZero);
-                }
-
-                self.registers[register] = Value::Float { value: a % b };
-            }
             Operation::Beq
             | Operation::Bge
             | Operation::Bgt
@@ -174,15 +182,10 @@ impl VM {
                 };
 
                 if result {
-                    let Some(program) = &self.program else {
-                        unreachable!()
-                    };
-
-                    let Argument::Label { name } = &args[2] else {
-                        unreachable!()
-                    };
-
-                    self.pc = program.labels[name]
+                    self.write_register(
+                        RegisterKind::ProgramCounter,
+                        self.argument_to_value(&args[2])?,
+                    )?
                 }
             }
             Operation::Beqz
@@ -204,15 +207,10 @@ impl VM {
                 };
 
                 if result {
-                    let Some(program) = &self.program else {
-                        unreachable!()
-                    };
-
-                    let Argument::Label { name } = &args[1] else {
-                        unreachable!()
-                    };
-
-                    self.pc = program.labels[name]
+                    self.write_register(
+                        RegisterKind::ProgramCounter,
+                        self.argument_to_value(&args[1])?,
+                    )?
                 }
             }
             Operation::Seq
@@ -221,10 +219,7 @@ impl VM {
             | Operation::Sle
             | Operation::Slt
             | Operation::Sne => {
-                let Argument::Register {
-                    kind: RegisterKind::Regular { id: register },
-                } = &args[0]
-                else {
+                let Argument::Register { register } = &args[0] else {
                     unreachable!()
                 };
                 let a = self.argument_to_value(&args[1])?;
@@ -240,9 +235,12 @@ impl VM {
                     _ => unreachable!(),
                 };
 
-                self.registers[*register] = Value::Float {
-                    value: if result { 1.0 } else { 0.0 },
-                }
+                self.write_register(
+                    *register,
+                    Value::Float {
+                        value: if result { 1.0 } else { 0.0 },
+                    },
+                )?
             }
             Operation::Seqz
             | Operation::Sgez
@@ -250,10 +248,7 @@ impl VM {
             | Operation::Slez
             | Operation::Sltz
             | Operation::Snez => {
-                let Argument::Register {
-                    kind: RegisterKind::Regular { id: register },
-                } = &args[0]
-                else {
+                let Argument::Register { register } = &args[0] else {
                     unreachable!()
                 };
                 let a = self.argument_to_float(&args[1])?;
@@ -268,9 +263,12 @@ impl VM {
                     _ => unreachable!(),
                 };
 
-                self.registers[*register] = Value::Float {
-                    value: if result { 1.0 } else { 0.0 },
-                }
+                self.write_register(
+                    *register,
+                    Value::Float {
+                        value: if result { 1.0 } else { 0.0 },
+                    },
+                )?
             }
             Operation::Halt => return Ok(Some(VMStatus::Finished)),
         }
@@ -301,7 +299,7 @@ impl VM {
 
     fn argument_to_value(&self, argument: &Argument) -> Result<Value, RuntimeError> {
         match argument {
-            Argument::Register { kind } => self.register_to_value(*kind),
+            Argument::Register { register: kind } => self.register_to_value(*kind),
             Argument::Int { value } => Ok(Value::Float {
                 value: *value as f32,
             }),
@@ -309,8 +307,17 @@ impl VM {
             Argument::String { value } => Ok(Value::String {
                 value: value.clone(),
             }),
+            Argument::Label { name } => {
+                let Some(program) = &self.program else {
+                    unreachable!()
+                };
+
+                Ok(Value::Float {
+                    value: program.labels[name] as f32,
+                })
+            }
             // Argument types should be checked at compilation time
-            _ => unreachable!("Invalid argument"),
+            _ => unreachable!(),
         }
     }
 }

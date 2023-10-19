@@ -4,7 +4,7 @@ use arch::{Argument, Assembly, Operation, RegisterKind, Token};
 
 use crate::CompileError;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Program {
     pub labels: BTreeMap<String, usize>,
     pub tokens: Vec<Token>,
@@ -43,12 +43,10 @@ impl Program {
                 continue;
             };
 
-            let Argument::Label { name } = &args[0] else {
-                panic!("First argument should be a label")
-            };
-
-            if !program.labels.contains_key(name) {
-                return Err(CompileError::DuplicatedLabel { name: name.clone() });
+            if let Argument::Label { name } = &args[0] {
+                if !program.labels.contains_key(name) {
+                    return Err(CompileError::DuplicatedLabel { name: name.clone() });
+                }
             }
         }
 
@@ -73,22 +71,20 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
             if !matches!(
                 args[0],
                 Argument::Register {
-                    kind: RegisterKind::Regular { .. }
+                    register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                 }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
-                    message: format!("{operation:?}'s first argument accepts only registers"),
+                    message: format!(
+                        "{operation:?}'s first argument accepts only regular registers and pc"
+                    ),
                 });
             }
 
             if !matches!(
                 args[1],
-                Argument::Int { .. }
-                    | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
@@ -100,11 +96,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
 
             if !matches!(
                 args[2],
-                Argument::Int { .. }
-                    | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
@@ -115,10 +107,17 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
             }
         }
         Operation::Jmp => {
-            if args.is_empty() || !matches!(args[0], Argument::Label { .. }) {
+            if args.is_empty()
+                || !matches!(
+                    args[0],
+                    Argument::Label { .. } | Argument::Int { .. } | Argument::Register { .. }
+                )
+            {
                 return Err(CompileError::InvalidInstruction {
                     operation,
-                    message: format!("{operation:?}'s first argument requires label argument"),
+                    message: format!(
+                        "{operation:?}'s first argument accepts only numbers, labels and registers"
+                    ),
                 });
             }
         }
@@ -165,9 +164,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
                 args[0],
                 Argument::Int { .. }
                     | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                    | Argument::Register { .. }
                     | Argument::String { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
@@ -181,12 +178,14 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
             if !matches!(
                 args[1],
                 Argument::Register {
-                    kind: RegisterKind::Regular { .. }
+                    register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                 }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
-                    message: format!("{operation:?}'s second argument accepts only registers"),
+                    message: format!(
+                        "{operation:?}'s second argument accepts only regular registers and pc"
+                    ),
                 });
             }
         }
@@ -207,9 +206,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
                 args[0],
                 Argument::Int { .. }
                     | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                    | Argument::Register { .. }
                     | Argument::String { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
@@ -224,9 +221,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
                 args[1],
                 Argument::Int { .. }
                     | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                    | Argument::Register { .. }
                     | Argument::String { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
@@ -237,10 +232,15 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
                 });
             }
 
-            if !matches!(args[2], Argument::Label { .. }) {
+            if !matches!(
+                args[2],
+                Argument::Label { .. } | Argument::Int { .. } | Argument::Register { .. }
+            ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
-                    message: format!("{operation:?}'s third argument accepts only labels"),
+                    message: format!(
+                        "{operation:?}'s third argument accepts only numbers, labels and registers"
+                    ),
                 });
             }
 
@@ -274,9 +274,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
                 args[0],
                 Argument::Int { .. }
                     | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                    | Argument::Register { .. }
                     | Argument::String { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
@@ -287,10 +285,15 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
                 });
             }
 
-            if !matches!(args[1], Argument::Label { .. }) {
+            if !matches!(
+                args[1],
+                Argument::Label { .. } | Argument::Int { .. } | Argument::Register { .. }
+            ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
-                    message: format!("{operation:?}'s second argument accepts only labels"),
+                    message: format!(
+                        "{operation:?}'s second argument accepts numbers, labels and registers"
+                    ),
                 });
             }
         }
@@ -310,22 +313,20 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
             if !matches!(
                 args[0],
                 Argument::Register {
-                    kind: RegisterKind::Regular { .. }
+                    register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                 }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
-                    message: format!("{operation:?}'s first argument accepts only registers"),
+                    message: format!(
+                        "{operation:?}'s first argument accepts only regular registers and pc"
+                    ),
                 });
             }
 
             if !matches!(
                 args[1],
-                Argument::Int { .. }
-                    | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
@@ -337,11 +338,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
 
             if !matches!(
                 args[2],
-                Argument::Int { .. }
-                    | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
@@ -380,22 +377,20 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
             if !matches!(
                 args[0],
                 Argument::Register {
-                    kind: RegisterKind::Regular { .. }
+                    register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                 }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
-                    message: format!("{operation:?}'s first argument accepts only registers"),
+                    message: format!(
+                        "{operation:?}'s first argument accepts only regular registers and pc"
+                    ),
                 });
             }
 
             if !matches!(
                 args[1],
-                Argument::Int { .. }
-                    | Argument::Float { .. }
-                    | Argument::Register {
-                        kind: RegisterKind::Regular { .. }
-                    }
+                Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
             ) {
                 return Err(CompileError::InvalidInstruction {
                     operation,
@@ -413,7 +408,7 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
 fn default_argument_validation(argument: &Argument) -> Result<(), CompileError> {
     match argument {
         Argument::Register {
-            kind: RegisterKind::Regular { id },
+            register: RegisterKind::Regular { id },
         } => {
             if *id >= crate::REGISTERS_COUNT {
                 return Err(CompileError::InvalidRegister { id: *id });

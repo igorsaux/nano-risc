@@ -2,7 +2,7 @@ use crate::RegisterKind;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Argument {
-    Register { kind: RegisterKind },
+    Register { register: RegisterKind },
     Pin { id: usize },
     Int { value: i32 },
     Float { value: f32 },

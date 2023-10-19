@@ -137,7 +137,7 @@ fn label_arg(source: &[u8]) -> IResult<&[u8], Argument> {
 }
 
 fn register_arg(source: &[u8]) -> IResult<&[u8], Argument> {
-    register::parse(source).map(|(remain, kind)| (remain, Argument::Register { kind }))
+    register::parse(source).map(|(remain, kind)| (remain, Argument::Register { register: kind }))
 }
 
 fn arg_parser(source: &[u8]) -> IResult<&[u8], Argument> {
@@ -199,7 +199,7 @@ mod tests {
                     operation: Operation::Add,
                     args: vec![
                         Argument::Register {
-                            kind: RegisterKind::Regular { id: 1 }
+                            register: RegisterKind::Regular { id: 1 }
                         },
                         Argument::Pin { id: 4 },
                         Argument::Int { value: 78 },

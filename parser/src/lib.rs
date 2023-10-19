@@ -79,7 +79,7 @@ dbg $pc
                         operation: Operation::Add,
                         args: vec![
                             Argument::Register {
-                                kind: RegisterKind::Regular { id: 0 }
+                                register: RegisterKind::Regular { id: 0 }
                             },
                             Argument::Int { value: 1 }
                         ]
@@ -88,10 +88,10 @@ dbg $pc
                         operation: Operation::Sub,
                         args: vec![
                             Argument::Register {
-                                kind: RegisterKind::Regular { id: 5 }
+                                register: RegisterKind::Regular { id: 5 }
                             },
                             Argument::Register {
-                                kind: RegisterKind::Regular { id: 0 }
+                                register: RegisterKind::Regular { id: 0 }
                             }
                         ]
                     },
@@ -110,13 +110,13 @@ dbg $pc
                     Token::Instruction {
                         operation: Operation::Dbg,
                         args: vec![Argument::Register {
-                            kind: RegisterKind::StackPointer
+                            register: RegisterKind::StackPointer
                         }]
                     },
                     Token::Instruction {
                         operation: Operation::Dbg,
                         args: vec![Argument::Register {
-                            kind: RegisterKind::ProgramCounter
+                            register: RegisterKind::ProgramCounter
                         }]
                     }
                 ]
