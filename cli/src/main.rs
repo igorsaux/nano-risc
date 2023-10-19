@@ -15,16 +15,20 @@ fn main() {
         .parse()
         .unwrap();
 
-    println!("Compiling program...");
-
     let program = Program::try_compile(assembly).unwrap();
     let mut vm = VM::default();
 
-    println!("Loading program...");
-
+    vm.set_dbg_callback(Box::new(|message| println!("{message}")));
     vm.load_program(program);
 
-    println!("Executing...");
-
-    while let VMStatus::Running | VMStatus::Yield = vm.tick().unwrap() {}
+    loop {
+        match vm.tick() {
+            Ok(VMStatus::Finished | VMStatus::Idle) => break,
+            Err(error) => {
+                eprintln!("Exception raised: {error}");
+                return;
+            }
+            _ => {}
+        }
+    }
 }
