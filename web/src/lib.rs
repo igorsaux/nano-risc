@@ -1,6 +1,6 @@
 use parser::Parser;
 use std::{panic, rc::Rc};
-use vm::{Program, VMStatus, VM};
+use vm::{Limits, Program, VMStatus, VM};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -9,8 +9,10 @@ pub fn main() {
 }
 
 #[wasm_bindgen]
-pub fn vm_create() -> usize {
-    Rc::into_raw(Rc::new(VM::default())) as usize
+pub fn vm_create(limits: JsValue) -> usize {
+    let limits: Limits = serde_wasm_bindgen::from_value(limits).unwrap_or_default();
+
+    Rc::into_raw(Rc::new(VM::new(limits))) as usize
 }
 
 #[wasm_bindgen]

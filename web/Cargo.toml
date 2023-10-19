@@ -10,6 +10,7 @@ crate-type = ["cdylib", "lib"]
 parser = { package = "parser", path = "../parser" }
 vm = { package = "vm", path = "../vm" }
 arch = { package = "arch", path = "../arch" }
-wasm-bindgen = "0.2.87"
+wasm-bindgen = { version = "0.2.87", features = ["serde-serialize"] }
 js-sys = "0.3.64"
 console_error_panic_hook = "0.1.7"
+serde-wasm-bindgen = "0.6.0"

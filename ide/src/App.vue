@@ -10,7 +10,7 @@ import VMControl from './components/VMControl.vue';
 import NanoRiscVM from './vm';
 
 const sourceCode = ref(exampleProgram)
-const vm = ref(new NanoRiscVM())
+const vm = ref(new NanoRiscVM(null))
 </script>
 
 <template>

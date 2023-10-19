@@ -15,6 +15,10 @@ export enum VMStatus {
   Finished
 }
 
+export type Limits = {
+  regularRegisters: number
+}
+
 export default class NanoRiscVM {
   __handle: number
   __dbgCallback?: (text: string) => void
@@ -22,8 +26,8 @@ export default class NanoRiscVM {
   pc: number
   status: VMStatus
 
-  constructor() {
-    this.__handle = vm_create()
+  constructor(limits: Limits | null) {
+    this.__handle = vm_create(limits)
     this.registers = vm_get_registers(this.__handle)
     this.pc = vm_get_pc(this.__handle)
     this.status = VMStatus.Idle

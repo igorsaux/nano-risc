@@ -55,10 +55,6 @@ impl Program {
 }
 
 fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), CompileError> {
-    for arg in args {
-        default_argument_validation(arg)?;
-    }
-
     match operation {
         Operation::Add | Operation::Sub | Operation::Mul | Operation::Div | Operation::Mod => {
             if args.len() != 3 {
@@ -400,26 +396,6 @@ fn validate_instruction(operation: Operation, args: &[Argument]) -> Result<(), C
                 });
             }
         }
-    }
-
-    Ok(())
-}
-
-fn default_argument_validation(argument: &Argument) -> Result<(), CompileError> {
-    match argument {
-        Argument::Register {
-            register: RegisterKind::Regular { id },
-        } => {
-            if *id >= crate::REGISTERS_COUNT {
-                return Err(CompileError::InvalidRegister { id: *id });
-            }
-        }
-        Argument::Pin { id } => {
-            if *id >= crate::MAX_PINS {
-                return Err(CompileError::InvalidPin { id: *id });
-            }
-        }
-        _ => return Ok(()),
     }
 
     Ok(())

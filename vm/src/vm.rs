@@ -1,20 +1,28 @@
+use std::fmt::Debug;
+
 use arch::{Argument, Operation, RegisterKind, Token};
 
-use crate::{Program, RuntimeError, VMStatus, Value, REGISTERS_COUNT};
+use crate::{Limits, Program, RuntimeError, VMStatus, Value};
 
 pub type DbgCallback = Box<dyn Fn(String)>;
 
-#[derive(Default)]
 pub struct VM {
-    registers: [Value; crate::REGISTERS_COUNT],
-    stack: [Option<Value>; crate::STACK_SIZE],
+    limits: Limits,
+    registers: Vec<Value>,
+    stack: Vec<Value>,
     program: Option<Program>,
     pc: usize,
     sp: usize,
     dbg_callback: Option<DbgCallback>,
 }
 
-impl std::fmt::Debug for VM {
+impl Default for VM {
+    fn default() -> Self {
+        Self::new(Limits::default())
+    }
+}
+
+impl Debug for VM {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("VM")
             .field("registers", &self.registers)
@@ -27,6 +35,30 @@ impl std::fmt::Debug for VM {
 }
 
 impl VM {
+    pub fn new(limits: Limits) -> Self {
+        let mut registers = Vec::with_capacity(limits.regular_registers);
+
+        {
+            let remains = registers.spare_capacity_mut();
+
+            for value in remains {
+                value.write(Value::Float { value: 0.0 });
+            }
+
+            unsafe { registers.set_len(limits.regular_registers) };
+        }
+
+        Self {
+            limits,
+            registers,
+            stack: Vec::new(),
+            program: None,
+            pc: 0,
+            sp: 0,
+            dbg_callback: None,
+        }
+    }
+
     pub fn load_program(&mut self, program: Program) {
         self.program = Some(program);
     }
@@ -41,7 +73,7 @@ impl VM {
         self.stack = Default::default();
     }
 
-    pub fn registers(&self) -> &[Value; crate::REGISTERS_COUNT] {
+    pub fn registers(&self) -> &[Value] {
         &self.registers
     }
 
@@ -94,7 +126,7 @@ impl VM {
     ) -> Result<(), RuntimeError> {
         match register {
             RegisterKind::Regular { id } => {
-                if id >= REGISTERS_COUNT {
+                if id >= self.limits.regular_registers {
                     return Err(RuntimeError::InvalidRegister { register });
                 }
 
