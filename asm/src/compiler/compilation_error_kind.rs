@@ -6,4 +6,5 @@ pub enum CompilationErrorKind {
     InvalidArgument,
     DuplicateLabel { name: String },
     UnknownLabel { name: String },
+    TooLargeAssembly { size: usize },
 }

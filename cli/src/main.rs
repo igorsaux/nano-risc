@@ -18,7 +18,7 @@ fn main() {
         fs::read(app.assembly).unwrap(),
     );
     let tokens = parser::parse(&unit).unwrap();
-    let assembly = compiler::compile(unit, tokens).unwrap();
+    let assembly = compiler::compile(unit, tokens, None).unwrap();
     let mut vm = VM::default();
 
     vm.set_dbg_callback(Box::new(|message| println!("{message}")));

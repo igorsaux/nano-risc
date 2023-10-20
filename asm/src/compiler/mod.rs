@@ -5,7 +5,8 @@ mod syntax_token;
 
 use crate::parser::{ArgumentToken, Token, TokenKind};
 use nano_risc_arch::{
-    Argument, Assembly, DebugInfo, Instruction, Location, Operation, RegisterKind, SourceUnit,
+    Argument, Assembly, DebugInfo, Instruction, Limits, Location, Operation, RegisterKind,
+    SourceUnit,
 };
 use std::{collections::BTreeMap, str::FromStr};
 
@@ -14,7 +15,11 @@ pub use compilation_error::CompilationError;
 pub use compilation_error_kind::CompilationErrorKind;
 pub use syntax_token::SyntaxToken;
 
-pub fn compile(unit: SourceUnit, tokens: Vec<Token>) -> Result<Assembly, CompilationError> {
+pub fn compile(
+    unit: SourceUnit,
+    tokens: Vec<Token>,
+    limits: Option<&Limits>,
+) -> Result<Assembly, CompilationError> {
     let mut ast = Ast::new(&tokens)?;
 
     macros_stage(&mut ast)?;
@@ -78,6 +83,22 @@ pub fn compile(unit: SourceUnit, tokens: Vec<Token>) -> Result<Assembly, Compila
 
         source_loc.insert(address, syntax.token.location);
         assembly.instructions.push(instruction);
+
+        if let Some(Limits {
+            max_assembly_length,
+            ..
+        }) = limits
+        {
+            let size = assembly.instructions.len();
+
+            if size >= *max_assembly_length {
+                return Err(CompilationError::new(
+                    format!("Too large assembly file: {size} ({max_assembly_length})"),
+                    Location::default(),
+                    CompilationErrorKind::TooLargeAssembly { size },
+                ));
+            }
+        }
     }
 
     assembly.debug_info = Some(DebugInfo { source_loc, unit });
@@ -142,7 +163,7 @@ mod tests {
 
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
         let tokens = parser::parse(&unit).unwrap();
-        let assembly = compiler::compile(unit, tokens);
+        let assembly = compiler::compile(unit, tokens, None);
         let mut source_loc = BTreeMap::new();
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
 
@@ -176,10 +197,10 @@ mod tests {
                     Instruction {
                         operation: Operation::Mov,
                         arguments: vec![
+                            Argument::Int { value: 1 },
                             Argument::Register {
                                 register: RegisterKind::ProgramCounter
-                            },
-                            Argument::Int { value: 1 }
+                            }
                         ]
                     }
                 ],

@@ -7,7 +7,7 @@ mod vm_tests {
     fn create_vm_from(source: &str) -> VM {
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
         let tokens = parser::parse(&unit).unwrap();
-        let assembly = compiler::compile(unit, tokens).unwrap();
+        let assembly = compiler::compile(unit, tokens, None).unwrap();
         let mut vm = VM::default();
 
         vm.load_assembly(assembly).unwrap();
@@ -505,7 +505,7 @@ mod vm_tests {
 
 #[cfg(test)]
 mod compilation_tests {
-    use nano_risc_arch::SourceUnit;
+    use nano_risc_arch::{Limits, SourceUnit};
     use nano_risc_asm::{
         compiler::{self, CompilationErrorKind},
         parser,
@@ -514,20 +514,53 @@ mod compilation_tests {
     #[test]
     fn duplicate_labels() {
         let source = r#"
-        start:
-            halt
-        start:
-            jmp start
-    "#;
+            start:
+                halt
+            start:
+                jmp start
+        "#;
 
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
         let tokens = parser::parse(&unit).unwrap();
-        let assembly = compiler::compile(unit, tokens);
+        let assembly = compiler::compile(unit, tokens, None);
+
         assert_eq!(
             assembly.map_err(|err| err.kind().clone()),
             Err(CompilationErrorKind::DuplicateLabel {
                 name: String::from("start")
             })
         );
+    }
+
+    #[test]
+    fn max_size() {
+        let source = r#"
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+            mov 1 $r1
+        "#;
+
+        let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
+        let tokens = parser::parse(&unit).unwrap();
+        let assembly = compiler::compile(
+            unit,
+            tokens,
+            Some(&Limits {
+                max_assembly_length: 5,
+                ..Default::default()
+            }),
+        );
+
+        assert_eq!(
+            assembly.map_err(|err| err.kind().clone()),
+            Err(CompilationErrorKind::TooLargeAssembly { size: 5 })
+        )
     }
 }
