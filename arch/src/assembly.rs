@@ -11,11 +11,11 @@ pub struct Assembly {
 
 impl Assembly {
     pub fn validate(&self, limits: &Limits) -> Result<(), AssemblyError> {
-        for (line, instruction) in self.instructions.iter().enumerate() {
+        for (address, instruction) in self.instructions.iter().enumerate() {
             let dbg = self
                 .debug_info
                 .as_ref()
-                .map(|debug_info| (line, debug_info));
+                .map(|debug_info| (address, debug_info));
 
             Self::validate_instruction(instruction, limits, dbg)?;
         }
@@ -129,19 +129,6 @@ impl Assembly {
                 ) {
                     return Err(AssemblyError::new(
                         format!("{op}'s third argument accepts only numbers and registers"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-            }
-            Operation::Jmp => {
-                if args.is_empty()
-                    || !matches!(args[0], Argument::Int { .. } | Argument::Register { .. })
-                {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s first argument accepts only numbers and registers"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),

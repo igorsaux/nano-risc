@@ -28,7 +28,7 @@ fn main() {
         match vm.tick() {
             Ok(VMStatus::Finished | VMStatus::Idle) => break,
             Err(error) => {
-                eprintln!("Exception raised: {error}");
+                eprintln!("Exception raised: {}", error.message());
                 return;
             }
             _ => {}

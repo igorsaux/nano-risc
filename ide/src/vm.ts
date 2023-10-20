@@ -5,6 +5,7 @@ import {
   vm_tick,
   vm_get_registers,
   vm_pc_to_location,
+  vm_get_status,
   vm_reset,
   vm_get_pc
 } from '../../web/pkg'
@@ -14,7 +15,8 @@ export enum VMStatus {
   Idle = 0,
   Yield,
   Running,
-  Finished
+  Finished,
+  Error
 }
 
 export type Limits = {
@@ -33,18 +35,20 @@ export type CodeError = {
   location: Location
 }
 
+export type RuntimeError = {
+  message: string
+}
+
 export default class NanoRiscVM {
   __handle: number
   __dbgCallback?: (text: string) => void
   registers: Array<string | number>
   pc: number
-  status: VMStatus
 
   constructor(limits: Limits | null) {
     this.__handle = vm_create(limits)
     this.registers = vm_get_registers(this.__handle)
     this.pc = vm_get_pc(this.__handle)
-    this.status = VMStatus.Idle
 
     this.__refreshData()
 
@@ -77,24 +81,33 @@ export default class NanoRiscVM {
   }
 
   run() {
+    let status = this.status()
     this.reset()
 
     do {
       this.tick()
-    } while (this.status != VMStatus.Finished && this.status != VMStatus.Idle)
+      status = this.status()
+    } while (status != VMStatus.Finished && status != VMStatus.Idle)
   }
 
-  tick(): VMStatus {
-    this.status = vm_tick(this.__handle)
+  tick(): RuntimeError {
+    const error = vm_tick(this.__handle)
     this.__refreshData()
 
-    return this.status
+    if (error) {
+      this.__dbgCallback?.call(undefined, `\x1b[31mRuntime error: ${error.message}\x1b[37m`)
+    }
+
+    return error
   }
 
   reset() {
     vm_reset(this.__handle)
-    this.status = VMStatus.Idle
     this.__refreshData()
+  }
+
+  status(): VMStatus {
+    return vm_get_status(this.__handle)
   }
 
   __refreshData() {
@@ -102,7 +115,7 @@ export default class NanoRiscVM {
 
     store.$patch({
       vm: {
-        status: this.status,
+        status: this.status(),
         registers: vm_get_registers(this.__handle),
         pc: vm_get_pc(this.__handle)
       }

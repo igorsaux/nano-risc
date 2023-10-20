@@ -1,8 +1,8 @@
-use crate::{RuntimeError, VMStatus, Value};
+use crate::{RuntimeError, RuntimeErrorKind, VMStatus, Value};
 use nano_risc_arch::{
     Argument, Assembly, AssemblyError, Instruction, Limits, Operation, RegisterKind,
 };
-use std::fmt::Debug;
+use std::{cmp::Ordering, fmt::Debug};
 
 pub type DbgCallback = Box<dyn Fn(String)>;
 
@@ -14,6 +14,7 @@ pub struct VM {
     pc: usize,
     sp: usize,
     dbg_callback: Option<DbgCallback>,
+    status: VMStatus,
 }
 
 impl Default for VM {
@@ -30,6 +31,7 @@ impl Debug for VM {
             .field("program", &self.assembly)
             .field("pc", &self.pc)
             .field("sp", &self.sp)
+            .field("status", &self.status)
             .finish()
     }
 }
@@ -56,6 +58,7 @@ impl VM {
             pc: 0,
             sp: 0,
             dbg_callback: None,
+            status: VMStatus::Idle,
         }
     }
 
@@ -93,20 +96,41 @@ impl VM {
         self.pc
     }
 
+    pub fn status(&self) -> VMStatus {
+        self.status
+    }
+
     pub fn set_dbg_callback(&mut self, callback: DbgCallback) {
         self.dbg_callback = Some(callback)
     }
 
     /// Executes 1 instruction.
     pub fn tick(&mut self) -> Result<VMStatus, RuntimeError> {
+        if matches!(self.status, VMStatus::Error) {
+            panic!("VM in the invalid state")
+        };
+
         let Some(program) = self.assembly.as_ref() else {
-            return Ok(VMStatus::Idle);
+            self.status = VMStatus::Idle;
+
+            return Ok(self.status);
         };
 
         match self.pc.cmp(&program.instructions.len()) {
-            std::cmp::Ordering::Equal => return Ok(VMStatus::Finished),
-            std::cmp::Ordering::Greater => {
-                return Err(RuntimeError::InvalidPosition { position: self.pc })
+            Ordering::Equal => {
+                self.status = VMStatus::Finished;
+
+                return Ok(self.status);
+            }
+            Ordering::Greater => {
+                return Err(RuntimeError::new(
+                    format!(
+                        "Address {} is out of bounds ({})",
+                        self.pc,
+                        program.instructions.len() - 1
+                    ),
+                    RuntimeErrorKind::InvalidAddress { address: self.pc },
+                ));
             }
             _ => {}
         };
@@ -125,7 +149,9 @@ impl VM {
             return Ok(status);
         }
 
-        Ok(VMStatus::Running)
+        self.status = VMStatus::Running;
+
+        Ok(self.status)
     }
 
     pub fn write_register(
@@ -136,7 +162,10 @@ impl VM {
         match register {
             RegisterKind::Regular { id } => {
                 if id >= self.limits.regular_registers {
-                    return Err(RuntimeError::InvalidRegister { register });
+                    return Err(RuntimeError::new(
+                        format!("Register {register} is out of maximum registers"),
+                        RuntimeErrorKind::InvalidRegister { register },
+                    ));
                 }
 
                 self.registers[id] = value;
@@ -144,13 +173,17 @@ impl VM {
             RegisterKind::ProgramCounter => match value {
                 Value::Float { value } => self.pc = value as usize,
                 Value::String { .. } => {
-                    return Err(RuntimeError::InvalidType {
-                        message: String::from("PC does not accept string"),
-                    })
+                    return Err(RuntimeError::new(
+                        String::from("pc does not accept string"),
+                        RuntimeErrorKind::InvalidType,
+                    ));
                 }
             },
             RegisterKind::StackPointer => {
-                return Err(RuntimeError::RegisterIsReadOnly { register })
+                return Err(RuntimeError::new(
+                    String::from("sp is read-only"),
+                    RuntimeErrorKind::RegisterIsReadOnly { register },
+                ))
             }
         };
 
@@ -176,14 +209,20 @@ impl VM {
                     Operation::Mul => Value::Float { value: a * b },
                     Operation::Div => {
                         if b == 0.0 {
-                            return Err(RuntimeError::DividedByZero);
+                            return Err(RuntimeError::new(
+                                String::from("Divide by zero"),
+                                RuntimeErrorKind::DividedByZero,
+                            ));
                         }
 
                         Value::Float { value: a / b }
                     }
                     Operation::Mod => {
                         if b == 0.0 {
-                            return Err(RuntimeError::DividedByZero);
+                            return Err(RuntimeError::new(
+                                String::from("Divide by zero"),
+                                RuntimeErrorKind::DividedByZero,
+                            ));
                         }
 
                         Value::Float { value: a % b }
@@ -201,11 +240,6 @@ impl VM {
                 };
 
                 self.write_register(register, a)?
-            }
-            Operation::Jmp => {
-                let value = self.argument_to_value(&args[0])?;
-
-                self.write_register(RegisterKind::ProgramCounter, value)?
             }
             Operation::Dbg => {
                 let Some(callback) = &self.dbg_callback else {
@@ -350,9 +384,10 @@ impl VM {
     fn argument_to_float(&self, argument: &Argument) -> Result<f32, RuntimeError> {
         match self.argument_to_value(argument)? {
             Value::Float { value } => Ok(value),
-            Value::String { .. } => Err(RuntimeError::InvalidType {
-                message: String::from("Got string, but number required"),
-            }),
+            Value::String { .. } => Err(RuntimeError::new(
+                String::from("Got string, but number required"),
+                RuntimeErrorKind::InvalidType,
+            )),
         }
     }
 
@@ -366,9 +401,10 @@ impl VM {
             Argument::String { value } => Ok(Value::String {
                 value: value.clone(),
             }),
-            _ => Err(RuntimeError::InvalidType {
-                message: format!("Argument {argument} can't be used as value"),
-            }),
+            _ => Err(RuntimeError::new(
+                format!("Argument {argument} can't be used as value"),
+                RuntimeErrorKind::InvalidType,
+            )),
         }
     }
 }

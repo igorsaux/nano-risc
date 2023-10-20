@@ -2,7 +2,7 @@
 mod vm_tests {
     use nano_risc_arch::SourceUnit;
     use nano_risc_asm::{compiler, parser};
-    use nano_risc_vm::{RuntimeError, VMStatus, Value, VM};
+    use nano_risc_vm::{RuntimeErrorKind, VMStatus, Value, VM};
 
     fn create_vm_from(source: &str) -> VM {
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
@@ -134,7 +134,10 @@ mod vm_tests {
         "#;
         let mut vm = create_vm_from(source);
 
-        assert_eq!(vm.tick(), Err(RuntimeError::DividedByZero));
+        assert_eq!(
+            vm.tick().map_err(|err| err.kind().clone()),
+            Err(RuntimeErrorKind::DividedByZero)
+        );
     }
 
     #[test]
@@ -494,8 +497,8 @@ mod vm_tests {
 
         assert_eq!(vm.tick(), Ok(VMStatus::Running));
         assert_eq!(
-            vm.tick(),
-            Err(RuntimeError::InvalidPosition { position: 9999 })
+            vm.tick().map_err(|err| err.kind().clone()),
+            Err(RuntimeErrorKind::InvalidAddress { address: 9999 })
         )
     }
 }

@@ -14,6 +14,8 @@ function statusToString(status: VMStatus): string {
 		return "Yield"
 	} else if (status === VMStatus.Finished) {
 		return "Finished"
+	} else if (status === VMStatus.Error) {
+		return "Error"
 	}
 
 	throw Error("Value of of range")

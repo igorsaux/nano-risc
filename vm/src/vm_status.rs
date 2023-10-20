@@ -4,4 +4,5 @@ pub enum VMStatus {
     Yield,
     Running,
     Finished,
+    Error,
 }

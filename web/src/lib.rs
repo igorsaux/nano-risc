@@ -85,14 +85,26 @@ pub fn vm_get_pc(handle: usize) -> usize {
 }
 
 #[wasm_bindgen]
-pub fn vm_tick(handle: usize) -> usize {
+pub fn vm_get_status(handle: usize) -> usize {
     let vm = unsafe { &mut *(handle as *mut VM) };
 
-    match vm.tick().unwrap() {
+    match vm.status() {
         VMStatus::Idle => 0,
         VMStatus::Yield => 1,
         VMStatus::Running => 2,
         VMStatus::Finished => 3,
+        VMStatus::Error => 4,
+    }
+}
+
+#[wasm_bindgen]
+pub fn vm_tick(handle: usize) -> JsValue {
+    let vm = unsafe { &mut *(handle as *mut VM) };
+
+    if let Err(error) = vm.tick() {
+        serde_wasm_bindgen::to_value(&error).unwrap()
+    } else {
+        JsValue::NULL
     }
 }
 

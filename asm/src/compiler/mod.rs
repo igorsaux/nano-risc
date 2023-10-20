@@ -4,7 +4,9 @@ mod compilation_error_kind;
 mod syntax_token;
 
 use crate::parser::{ArgumentToken, Token, TokenKind};
-use nano_risc_arch::{Argument, Assembly, DebugInfo, Instruction, Location, Operation, SourceUnit};
+use nano_risc_arch::{
+    Argument, Assembly, DebugInfo, Instruction, Location, Operation, RegisterKind, SourceUnit,
+};
 use std::{collections::BTreeMap, str::FromStr};
 
 pub use ast::Ast;
@@ -13,7 +15,9 @@ pub use compilation_error_kind::CompilationErrorKind;
 pub use syntax_token::SyntaxToken;
 
 pub fn compile(unit: SourceUnit, tokens: Vec<Token>) -> Result<Assembly, CompilationError> {
-    let ast = Ast::new(&tokens)?;
+    let mut ast = Ast::new(&tokens)?;
+
+    macros_stage(&mut ast)?;
 
     let mut source_loc: BTreeMap<usize, Location> = BTreeMap::new();
     let mut assembly = Assembly {
@@ -21,7 +25,7 @@ pub fn compile(unit: SourceUnit, tokens: Vec<Token>) -> Result<Assembly, Compila
         debug_info: None,
     };
 
-    for (idx, syntax) in ast.tokens.into_iter().enumerate() {
+    for (address, syntax) in ast.tokens.into_iter().enumerate() {
         let instruction = match syntax.token.kind {
             TokenKind::Operation { operation } => {
                 let operation = Operation::from_str(&operation).map_err(|_| {
@@ -72,13 +76,50 @@ pub fn compile(unit: SourceUnit, tokens: Vec<Token>) -> Result<Assembly, Compila
             _ => panic!("Only operations should be on top level"),
         };
 
-        source_loc.insert(idx, syntax.token.location);
+        source_loc.insert(address, syntax.token.location);
         assembly.instructions.push(instruction);
     }
 
     assembly.debug_info = Some(DebugInfo { source_loc, unit });
 
     Ok(assembly)
+}
+
+fn macros_stage(ast: &mut Ast) -> Result<(), CompilationError> {
+    for token in &mut ast.tokens {
+        match &token.token.kind {
+            TokenKind::Operation { operation } => {
+                if operation == "jmp" {
+                    let old_tocken = token.token.clone();
+
+                    token.token = Token {
+                        kind: TokenKind::Operation {
+                            operation: String::from("mov"),
+                        },
+                        location: old_tocken.location,
+                    };
+
+                    token.child.insert(
+                        1,
+                        SyntaxToken {
+                            token: Token {
+                                kind: TokenKind::Argument {
+                                    argument: ArgumentToken::Register {
+                                        register: RegisterKind::ProgramCounter,
+                                    },
+                                },
+                                location: Location::default(),
+                            },
+                            child: Vec::new(),
+                        },
+                    )
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -133,8 +174,13 @@ mod tests {
                         ]
                     },
                     Instruction {
-                        operation: Operation::Jmp,
-                        arguments: vec![Argument::Int { value: 1 }]
+                        operation: Operation::Mov,
+                        arguments: vec![
+                            Argument::Register {
+                                register: RegisterKind::ProgramCounter
+                            },
+                            Argument::Int { value: 1 }
+                        ]
                     }
                 ],
                 debug_info: Some(DebugInfo { source_loc, unit })
