@@ -102,15 +102,17 @@ onMounted(() => {
     automaticLayout: true,
     glyphMargin: true,
   })
+
   editor.getModel()?.onDidChangeContent(() => {
     emits('update:content', editor?.getModel()?.getValue() ?? '')
   })
+
   decorations = editor.createDecorationsCollection([])
 })
 </script>
 
 <template>
-  <div class="min-h-[40ch]" ref="editorNode"></div>
+  <div ref="editorNode"></div>
 </template>
 
 <style>

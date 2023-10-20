@@ -10,8 +10,8 @@ pub struct Limits {
 impl Default for Limits {
     fn default() -> Self {
         Self {
-            regular_registers: 16,
-            pins: 8,
+            regular_registers: 8,
+            pins: 6,
         }
     }
 }

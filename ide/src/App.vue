@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 import exampleProgram from '../../factorial.asm?raw'
 import CodeEditor from './components/CodeEditor.vue';
@@ -19,16 +19,37 @@ function loadProgram() {
 
   vm.value.loadProgram(sourceCode.value)
 }
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize)
+
+  onWindowResize()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize)
+})
+
+function onWindowResize() {
+  const terminal = document.querySelector('#terminal')
+  const codeEditor = document.querySelector('#codeEditor')
+  const vmControl = document.querySelector('#vmControl')
+
+  const termRect = terminal!.getBoundingClientRect()
+  const vmControlRect = vmControl!.getBoundingClientRect()
+
+  codeEditor?.setAttribute('style', `height: ${window.innerHeight - vmControlRect.height - termRect.height}px;`)
+}
 </script>
 
 <template>
   <div class="flex h-full w-full">
     <div class="flex flex-col w-full h-full">
-      <VMControl @vm-step="vm.tick()" @vm-compile="loadProgram" @vm-run="vm.run()" @vm-stop="vm.reset()" />
+      <VMControl id="vmControl" @vm-step="vm.tick()" @vm-compile="loadProgram" @vm-run="vm.run()" @vm-stop="vm.reset()" />
 
-      <div class="flex flex-col w-full h-full">
-        <CodeEditor :vm="vm" v-model:content="sourceCode" />
-        <TheTerminal :vm="vm" />
+      <div class="codeContainer w-full h-full">
+        <CodeEditor id="codeEditor" :vm="vm" v-model:content="sourceCode" />
+        <TheTerminal id="terminal" :vm="vm" />
       </div>
     </div>
 
@@ -37,4 +58,8 @@ function loadProgram() {
 </template>
 
 <style scoped>
+.codeContainer {
+  display: flex;
+  flex-direction: column;
+}
 </style>
