@@ -15,9 +15,6 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      devOptions: {
-        enabled: true
-      },
       manifest: {
         theme_color: '#ff7a00',
         background_color: '#ff7a00',
@@ -56,5 +53,6 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
-  }
+  },
+  base: '/nano-risc/'
 })
