@@ -1,15 +1,14 @@
 use std::str::FromStr;
 
-use nano_risc_arch::RegisterKind;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
     character::{
         self,
-        complete::{alpha1, hex_digit1, line_ending, space0, space1},
+        complete::{alpha1, char, hex_digit1, line_ending, one_of, space0, space1},
     },
     combinator::{eof, opt, recognize},
-    multi::many_till,
+    multi::{many0, many1, many_till},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
@@ -64,9 +63,7 @@ fn pin_arg(data: Span) -> IResult<Span, Token, ParsingError> {
             Token {
                 location,
                 kind: TokenKind::Argument {
-                    argument: ArgumentToken::Register {
-                        register: RegisterKind::Pin { id: id as usize },
-                    },
+                    argument: ArgumentToken::Pin { id: id as usize },
                 },
             },
         )
@@ -117,6 +114,30 @@ fn hex_int_arg(data: Span) -> IResult<Span, Token, ParsingError> {
                 kind: TokenKind::Argument {
                     argument: ArgumentToken::Int {
                         value: i32::from_str_radix(&format!("{sign}{value}"), 16).unwrap(),
+                    },
+                },
+            },
+        )
+    })
+}
+
+fn bin_int_arg(data: Span) -> IResult<Span, Token, ParsingError> {
+    let location = data.extra.find_location(data.location_offset()).unwrap();
+
+    preceded(
+        tag("0b"),
+        recognize(many1(terminated(one_of("01"), many0(char('_'))))),
+    )(data)
+    .map(|(remain, value)| {
+        let value = String::from_utf8(value.to_vec()).unwrap();
+
+        (
+            remain,
+            Token {
+                location,
+                kind: TokenKind::Argument {
+                    argument: ArgumentToken::Int {
+                        value: i32::from_str_radix(&value, 2).unwrap(),
                     },
                 },
             },
@@ -226,6 +247,7 @@ fn arg_parser(data: Span) -> IResult<Span, Token, ParsingError> {
         alt((
             self::register_arg,
             self::pin_arg,
+            self::bin_int_arg,
             self::hex_int_arg,
             self::float_arg,
             self::int_arg,
@@ -285,7 +307,7 @@ mod tests {
     #[test]
     fn parse_instruction_with_args() {
         let unit = SourceUnit::new_anonymous(
-            "add $r1 p4 78 -99 0xFF -0xDD 12.66 -4.12 \"Hello, world!\" start .data"
+            "add $r1 p4 78 -99 0xFF -0xDD 0b0101 12.66 -4.12 \"Hello, world!\" start .data"
                 .as_bytes()
                 .to_vec(),
         );
@@ -326,9 +348,7 @@ mod tests {
                         offset: 8
                     },
                     kind: TokenKind::Argument {
-                        argument: ArgumentToken::Register {
-                            register: RegisterKind::Pin { id: 4 }
-                        }
+                        argument: ArgumentToken::Pin { id: 4 }
                     }
                 },
                 Token {
@@ -378,14 +398,24 @@ mod tests {
                         offset: 29
                     },
                     kind: TokenKind::Argument {
+                        argument: ArgumentToken::Int { value: 0b0101 }
+                    }
+                },
+                Token {
+                    location: Location {
+                        line: 1,
+                        column: 37,
+                        offset: 36
+                    },
+                    kind: TokenKind::Argument {
                         argument: ArgumentToken::Float { value: 12.66 }
                     }
                 },
                 Token {
                     location: Location {
                         line: 1,
-                        column: 36,
-                        offset: 35
+                        column: 43,
+                        offset: 42
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Float { value: -4.12 }
@@ -394,8 +424,8 @@ mod tests {
                 Token {
                     location: Location {
                         line: 1,
-                        column: 42,
-                        offset: 41
+                        column: 49,
+                        offset: 48
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::String {
@@ -406,8 +436,8 @@ mod tests {
                 Token {
                     location: Location {
                         line: 1,
-                        column: 58,
-                        offset: 57
+                        column: 65,
+                        offset: 64
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Label {
@@ -418,8 +448,8 @@ mod tests {
                 Token {
                     location: Location {
                         line: 1,
-                        column: 64,
-                        offset: 63
+                        column: 71,
+                        offset: 70
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Constant {

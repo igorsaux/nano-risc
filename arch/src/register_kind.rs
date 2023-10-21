@@ -9,7 +9,6 @@ pub enum RegisterKind {
     Regular { id: usize, mode: RegisterMode },
     ProgramCounter,
     StackPointer,
-    Pin { id: usize },
 }
 
 impl Display for RegisterKind {
@@ -18,7 +17,6 @@ impl Display for RegisterKind {
             RegisterKind::Regular { id, .. } => f.write_fmt(format_args!("R{id}")),
             RegisterKind::ProgramCounter => f.write_str("PC"),
             RegisterKind::StackPointer => f.write_str("SP"),
-            RegisterKind::Pin { id } => f.write_fmt(format_args!("D{id}")),
         }
     }
 }

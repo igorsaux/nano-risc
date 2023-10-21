@@ -100,9 +100,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
-                            | RegisterKind::Pin { .. }
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -174,9 +172,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
-                            | RegisterKind::Pin { .. }
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -239,9 +235,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
-                            | RegisterKind::Pin { .. }
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -272,9 +266,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
-                            | RegisterKind::Pin { .. }
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -311,9 +303,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
-                            | RegisterKind::Pin { .. }
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -371,9 +361,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Pin { .. }
-                            | RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -406,9 +394,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Pin { .. }
-                            | RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -434,9 +420,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Pin { .. }
-                            | RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(
@@ -462,9 +446,7 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Pin { .. }
-                            | RegisterKind::Regular { .. }
-                            | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
                     }
                 ) {
                     return Err(AssemblyError::new(

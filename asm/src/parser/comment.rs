@@ -12,7 +12,7 @@ use super::{ParsingError, Span, Token, TokenKind};
 pub fn parse(data: Span) -> IResult<Span, Vec<Token>, ParsingError> {
     let location = data.extra.find_location(data.location_offset()).unwrap();
 
-    delimited(tag("#"), not_line_ending, alt((eof, line_ending)))(data).map(|(remain, text)| {
+    delimited(tag("# "), not_line_ending, alt((eof, line_ending)))(data).map(|(remain, text)| {
         (
             remain,
             vec![Token {
@@ -45,7 +45,7 @@ mod tests {
                     offset: 0
                 },
                 kind: TokenKind::Comment {
-                    text: String::from(" Test comment")
+                    text: String::from("Test comment")
                 }
             }])
         )

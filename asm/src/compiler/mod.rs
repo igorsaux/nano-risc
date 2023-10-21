@@ -109,6 +109,7 @@ pub fn compile(
                                     ))
                                 }
                             },
+                            ArgumentToken::Pin { id } => Argument::Pin { id },
                         };
 
                         Ok(arg)

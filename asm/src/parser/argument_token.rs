@@ -8,4 +8,5 @@ pub enum ArgumentToken {
     String { value: String },
     Label { name: String },
     Constant { name: String },
+    Pin { id: usize },
 }

@@ -94,7 +94,7 @@ mov $r0 %r1
                         offset: 1
                     },
                     kind: TokenKind::Comment {
-                        text: String::from(" A basic program")
+                        text: String::from("A basic program")
                     }
                 },
                 Token {
@@ -199,7 +199,7 @@ mov $r0 %r1
                         offset: 51
                     },
                     kind: TokenKind::Comment {
-                        text: String::from(" Jump")
+                        text: String::from("Jump")
                     }
                 },
                 Token {
@@ -231,7 +231,7 @@ mov $r0 %r1
                         offset: 69
                     },
                     kind: TokenKind::Comment {
-                        text: String::from(" Print stack pointer and program counter")
+                        text: String::from("Print stack pointer and program counter")
                     }
                 },
                 Token {

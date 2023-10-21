@@ -239,7 +239,6 @@ impl VM {
                     RuntimeErrorKind::RegisterIsReadOnly { register },
                 ))
             }
-            RegisterKind::Pin { .. } => todo!(),
         };
 
         Ok(())
@@ -739,7 +738,6 @@ impl VM {
             },
             RegisterKind::ProgramCounter => Ok(self.pc as f32),
             RegisterKind::StackPointer => Ok(self.sp as f32),
-            RegisterKind::Pin { .. } => todo!(),
         }
     }
 
