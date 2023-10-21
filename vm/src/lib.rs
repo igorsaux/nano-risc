@@ -9,5 +9,3 @@ pub use runtime_error::RuntimeError;
 pub use runtime_error_kind::RuntimeErrorKind;
 pub use vm::VM;
 pub use vm_status::VMStatus;
-
-pub const STACK_SIZE: usize = 16;
