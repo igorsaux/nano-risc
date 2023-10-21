@@ -8,4 +8,5 @@ pub enum RuntimeErrorKind {
     RegisterIsReadOnly { register: RegisterKind },
     InvalidRegister { register: RegisterKind },
     InvalidAddress { address: usize },
+    StackOverflow,
 }

@@ -7,7 +7,8 @@ import {
   vm_pc_to_location,
   vm_get_status,
   vm_reset,
-  vm_get_pc
+  vm_get_pc,
+  vm_get_sp
 } from '../../web/pkg'
 import { useAppStore } from './appStore'
 
@@ -17,11 +18,6 @@ export enum VMStatus {
   Running,
   Finished,
   Error
-}
-
-export type Limits = {
-  regularRegisters: number
-  pins: number
 }
 
 export type Location = {
@@ -42,14 +38,9 @@ export type RuntimeError = {
 export default class NanoRiscVM {
   __handle: number
   __dbgCallback?: (text: string) => void
-  registers: Array<string | number>
-  pc: number
 
-  constructor(limits: Limits | null) {
-    this.__handle = vm_create(limits)
-    this.registers = vm_get_registers(this.__handle)
-    this.pc = vm_get_pc(this.__handle)
-
+  constructor() {
+    this.__handle = vm_create()
     this.__refreshData()
 
     vm_set_dbg_callback(this.__handle, (text: string) => {
@@ -117,7 +108,8 @@ export default class NanoRiscVM {
       vm: {
         status: this.status(),
         registers: vm_get_registers(this.__handle),
-        pc: vm_get_pc(this.__handle)
+        pc: vm_get_pc(this.__handle),
+        sp: vm_get_sp(this.__handle)
       }
     })
   }

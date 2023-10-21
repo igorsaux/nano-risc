@@ -5,8 +5,7 @@ mod syntax_token;
 
 use crate::parser::{ArgumentToken, Token, TokenKind};
 use nano_risc_arch::{
-    Argument, Assembly, DebugInfo, Instruction, Limits, Location, Operation, RegisterKind,
-    SourceUnit,
+    Argument, Assembly, DebugInfo, Instruction, Limits, Location, Operation, SourceUnit,
 };
 use std::{collections::BTreeMap, str::FromStr};
 
@@ -20,9 +19,7 @@ pub fn compile(
     tokens: Vec<Token>,
     limits: Option<&Limits>,
 ) -> Result<Assembly, CompilationError> {
-    let mut ast = Ast::new(&tokens)?;
-
-    macros_stage(&mut ast)?;
+    let ast = Ast::new(&tokens)?;
 
     let mut source_loc: BTreeMap<usize, Location> = BTreeMap::new();
     let mut assembly = Assembly {
@@ -50,10 +47,9 @@ pub fn compile(
 
                         let arg = match arg {
                             ArgumentToken::Register { register } => Argument::Register { register },
-                            ArgumentToken::Pin { id } => Argument::Pin { id },
                             ArgumentToken::Int { value } => Argument::Int { value },
                             ArgumentToken::Float { value } => Argument::Float { value },
-                            ArgumentToken::String { value } => Argument::String { value },
+                            ArgumentToken::String { value } => todo!(),
                             ArgumentToken::Label { name } => {
                                 if !ast.labels.contains_key(&name) {
                                     return Err(CompilationError::new(
@@ -106,48 +102,12 @@ pub fn compile(
     Ok(assembly)
 }
 
-fn macros_stage(ast: &mut Ast) -> Result<(), CompilationError> {
-    for token in &mut ast.tokens {
-        match &token.token.kind {
-            TokenKind::Operation { operation } => {
-                if operation == "jmp" {
-                    let old_tocken = token.token.clone();
-
-                    token.token = Token {
-                        kind: TokenKind::Operation {
-                            operation: String::from("mov"),
-                        },
-                        location: old_tocken.location,
-                    };
-
-                    token.child.insert(
-                        1,
-                        SyntaxToken {
-                            token: Token {
-                                kind: TokenKind::Argument {
-                                    argument: ArgumentToken::Register {
-                                        register: RegisterKind::ProgramCounter,
-                                    },
-                                },
-                                location: Location::default(),
-                            },
-                            child: Vec::new(),
-                        },
-                    )
-                }
-            }
-            _ => {}
-        }
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{compiler, parser};
     use nano_risc_arch::{
-        Argument, Assembly, DebugInfo, Instruction, Location, Operation, RegisterKind, SourceUnit,
+        Argument, Assembly, DebugInfo, Instruction, Location, Operation, RegisterKind,
+        RegisterMode, SourceUnit,
     };
     use pretty_assertions::assert_eq;
     use std::collections::BTreeMap;
@@ -157,7 +117,7 @@ mod tests {
         let source = r#"
             add $r0 1 0
             start:
-            mov 5 $r1
+            mov $r1 5
             jmp start
         "#;
 
@@ -179,7 +139,10 @@ mod tests {
                         operation: Operation::Add,
                         arguments: vec![
                             Argument::Register {
-                                register: RegisterKind::Regular { id: 0 }
+                                register: RegisterKind::Regular {
+                                    id: 0,
+                                    mode: RegisterMode::Direct
+                                }
                             },
                             Argument::Int { value: 1 },
                             Argument::Int { value: 0 }
@@ -188,20 +151,18 @@ mod tests {
                     Instruction {
                         operation: Operation::Mov,
                         arguments: vec![
-                            Argument::Int { value: 5 },
                             Argument::Register {
-                                register: RegisterKind::Regular { id: 1 }
-                            }
+                                register: RegisterKind::Regular {
+                                    id: 1,
+                                    mode: RegisterMode::Direct
+                                }
+                            },
+                            Argument::Int { value: 5 },
                         ]
                     },
                     Instruction {
-                        operation: Operation::Mov,
-                        arguments: vec![
-                            Argument::Int { value: 1 },
-                            Argument::Register {
-                                register: RegisterKind::ProgramCounter
-                            }
-                        ]
+                        operation: Operation::Jmp,
+                        arguments: vec![Argument::Int { value: 1 },]
                     }
                 ],
                 debug_info: Some(DebugInfo { source_loc, unit })

@@ -39,7 +39,7 @@ impl Assembly {
         for arg in &instruction.arguments {
             match arg {
                 Argument::Register {
-                    register: RegisterKind::Regular { id },
+                    register: RegisterKind::Regular { id, .. },
                 } => {
                     if *id >= limits.regular_registers {
                         return Err(AssemblyError::new(
@@ -98,37 +98,26 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                            | RegisterKind::Pin { .. }
                     }
                 ) {
                     return Err(AssemblyError::new(
-                        format!("{op}'s first argument accepts only regular registers and pc"),
+                        format!("{op}'s first argument accepts only registers"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),
                         },
                     ));
                 }
-
-                if !matches!(
-                    args[1],
-                    Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
-                ) {
+            }
+            Operation::Jmp => {
+                if args.is_empty()
+                    || !matches!(args[0], Argument::Int { .. } | Argument::Register { .. })
+                {
                     return Err(AssemblyError::new(
-                        format!("{op}'s second argument accepts only numbers and registers"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(
-                    args[2],
-                    Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s third argument accepts only numbers and registers"),
+                        format!("{op}'s first argument accepts only numbers and registers"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),
@@ -147,23 +136,10 @@ impl Assembly {
                     ));
                 }
 
-                if !matches!(
-                    args[0],
-                    Argument::Int { .. }
-                        | Argument::Float { .. }
-                        | Argument::Register { .. }
-                        | Argument::String { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!("{op} accepts only numbers, strings and registers"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
                 return Ok(());
+            }
+            Operation::Dbgs => {
+                todo!()
             }
             Operation::Yield | Operation::Halt => {
                 if !args.is_empty() {
@@ -189,28 +165,14 @@ impl Assembly {
 
                 if !matches!(
                     args[0],
-                    Argument::Int { .. }
-                        | Argument::Float { .. }
-                        | Argument::Register { .. }
-                        | Argument::String { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s first argument accepts numbers, strings and registers"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(
-                    args[1],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                            | RegisterKind::Pin { .. }
                     }
                 ) {
                     return Err(AssemblyError::new(
-                        format!("{op}'s second argument accepts only regular registers and pc"),
+                        format!("{op}'s first argument accepts only registers"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),
@@ -233,66 +195,6 @@ impl Assembly {
                         },
                     ));
                 }
-
-                if !matches!(
-                    args[0],
-                    Argument::Int { .. }
-                        | Argument::Float { .. }
-                        | Argument::Register { .. }
-                        | Argument::String { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!(
-                            "{op}'s first argument accepts only numbers, strings and registers"
-                        ),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(
-                    args[1],
-                    Argument::Int { .. }
-                        | Argument::Float { .. }
-                        | Argument::Register { .. }
-                        | Argument::String { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!(
-                            "{op}'s second argument accepts only numbers, strings and registers"
-                        ),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(args[2], Argument::Int { .. } | Argument::Register { .. }) {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s third argument accepts only numbers and registers"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if (matches!(args[0], Argument::String { .. })
-                    && !matches!(args[1], Argument::String { .. }))
-                    || (!matches!(args[0], Argument::String { .. })
-                        && matches!(args[1], Argument::String { .. }))
-                {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s first and second arguments should be of the same type"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
             }
             Operation::Beqz
             | Operation::Bgez
@@ -303,34 +205,6 @@ impl Assembly {
                 if args.len() != 2 {
                     return Err(AssemblyError::new(
                         format!("{op} requires 2 arguments"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(
-                    args[0],
-                    Argument::Int { .. }
-                        | Argument::Float { .. }
-                        | Argument::Register { .. }
-                        | Argument::String { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!(
-                            "{op}'s first argument accepts only numbers, strings and registers"
-                        ),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(args[1], Argument::Int { .. } | Argument::Register { .. }) {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s second argument accepts numbers, labels and registers"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),
@@ -357,51 +231,13 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                            | RegisterKind::Pin { .. }
                     }
                 ) {
                     return Err(AssemblyError::new(
-                        format!("{op}'s first argument accepts only regular registers and pc"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(
-                    args[1],
-                    Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s second argument accepts only numbers and registers"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if !matches!(
-                    args[2],
-                    Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
-                ) {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s third argument accepts only numbers and registers"),
-                        Self::get_loc(dbg),
-                        AssemblyErrorKind::InvalidInstruction {
-                            name: op.to_string(),
-                        },
-                    ));
-                }
-
-                if (matches!(args[1], Argument::String { .. })
-                    && !matches!(args[2], Argument::String { .. }))
-                    || (!matches!(args[1], Argument::String { .. })
-                        && matches!(args[2], Argument::String { .. }))
-                {
-                    return Err(AssemblyError::new(
-                        format!("{op}'s second and third arguments should be of the same type"),
+                        format!("{op}'s first argument accepts only registers"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),
@@ -428,11 +264,95 @@ impl Assembly {
                 if !matches!(
                     args[0],
                     Argument::Register {
-                        register: RegisterKind::Regular { .. } | RegisterKind::ProgramCounter
+                        register: RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                            | RegisterKind::Pin { .. }
                     }
                 ) {
                     return Err(AssemblyError::new(
-                        format!("{op}'s first argument accepts only regular registers and pc"),
+                        format!("{op}'s first argument accepts only registers"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::Push => {
+                if args.len() != 1 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 1 argument"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                };
+            }
+            Operation::Pop | Operation::Peek => {
+                if args.len() != 1 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 1 argument"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                };
+
+                if !matches!(
+                    args[0],
+                    Argument::Register {
+                        register: RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                            | RegisterKind::Pin { .. }
+                    }
+                ) {
+                    return Err(AssemblyError::new(
+                        format!("{op}'s first argument accepts only registers"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::Ret => {
+                if !args.is_empty() {
+                    return Err(AssemblyError::new(
+                        format!("{op} does not accept arguments"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::Call => {
+                if args.len() != 1 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 1 argument"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::And
+            | Operation::Or
+            | Operation::Xor
+            | Operation::Nor
+            | Operation::Andi
+            | Operation::Ori
+            | Operation::Xori
+            | Operation::Shr
+            | Operation::Shl
+            | Operation::Ror
+            | Operation::Rol => {
+                if args.len() != 3 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 3 arguments"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),
@@ -441,11 +361,78 @@ impl Assembly {
                 }
 
                 if !matches!(
-                    args[1],
-                    Argument::Int { .. } | Argument::Float { .. } | Argument::Register { .. }
+                    args[0],
+                    Argument::Register {
+                        register: RegisterKind::Pin { .. }
+                            | RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                    }
                 ) {
                     return Err(AssemblyError::new(
-                        format!("{op}'s second argument accepts only numbers and registers"),
+                        format!("{op}'s first argument accepts only registers"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::Sqrt
+            | Operation::Trunc
+            | Operation::Ceil
+            | Operation::Floor
+            | Operation::Abs
+            | Operation::Exp
+            | Operation::Inf
+            | Operation::Nan => {
+                if args.len() != 2 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 2 arguments"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+
+                if !matches!(
+                    args[0],
+                    Argument::Register {
+                        register: RegisterKind::Pin { .. }
+                            | RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                    }
+                ) {
+                    return Err(AssemblyError::new(
+                        format!("{op}'s first argument accepts only registers"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::Max | Operation::Min | Operation::Log => {
+                if args.len() != 3 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 3 arguments"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+
+                if !matches!(
+                    args[0],
+                    Argument::Register {
+                        register: RegisterKind::Pin { .. }
+                            | RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                    }
+                ) {
+                    return Err(AssemblyError::new(
+                        format!("{op}'s first argument accepts only registers"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),

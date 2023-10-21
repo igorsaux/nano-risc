@@ -12,8 +12,9 @@ const store = useAppStore()
 				<span>R{{ index }}:</span> <span class="text-neutral-500">{{ register }}</span>
 			</div>
 		</div>
-		<div>
-			<span>PC:</span> <span class="text-neutral-500">{{ store.vm.pc }}</span>
+		<div class="flex gap-1">
+			<span><span>PC:</span> <span class="text-neutral-500">{{ store.vm.pc }}</span></span>
+			<span><span>SP:</span> <span class="text-neutral-500">{{ store.vm.sp }}</span></span>
 		</div>
 	</div>
 </template>

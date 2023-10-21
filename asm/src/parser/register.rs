@@ -1,4 +1,4 @@
-use nano_risc_arch::RegisterKind;
+use nano_risc_arch::{RegisterKind, RegisterMode};
 use nom::{
     branch::alt, bytes::complete::tag, character, combinator::recognize, sequence::preceded,
     IResult,
@@ -19,8 +19,47 @@ pub fn parse(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
 }
 
 fn regular_register(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
-    preceded(tag("$r"), character::complete::u8)(data)
-        .map(|(remain, id)| (remain, RegisterKind::Regular { id: id as usize }))
+    alt((
+        regular_indirect_register,
+        regular_address_register,
+        regular_direct_register,
+    ))(data)
+}
+
+fn regular_indirect_register(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
+    preceded(tag("%r"), character::complete::u8)(data).map(|(remain, id)| {
+        (
+            remain,
+            RegisterKind::Regular {
+                id: id as usize,
+                mode: RegisterMode::Indirect,
+            },
+        )
+    })
+}
+
+fn regular_address_register(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
+    preceded(tag("@r"), character::complete::u8)(data).map(|(remain, id)| {
+        (
+            remain,
+            RegisterKind::Regular {
+                id: id as usize,
+                mode: RegisterMode::Address,
+            },
+        )
+    })
+}
+
+fn regular_direct_register(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
+    preceded(tag("$r"), character::complete::u8)(data).map(|(remain, id)| {
+        (
+            remain,
+            RegisterKind::Regular {
+                id: id as usize,
+                mode: RegisterMode::Direct,
+            },
+        )
+    })
 }
 
 fn program_counter(data: Span) -> IResult<Span, RegisterKind, ParsingError> {

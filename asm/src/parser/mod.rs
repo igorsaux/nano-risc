@@ -49,7 +49,7 @@ fn parse_inner(unit: &SourceUnit) -> Result<Vec<Token>, ParsingError> {
 #[cfg(test)]
 mod tests {
     use crate::parser::{self, ArgumentToken, Token, TokenKind};
-    use nano_risc_arch::{Location, RegisterKind, SourceUnit};
+    use nano_risc_arch::{Location, RegisterKind, RegisterMode, SourceUnit};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -66,6 +66,9 @@ jmp start
 # Print stack pointer and program counter
 dbg $sp
 dbg $pc
+
+mov $r0 %r1
+mov $r0 @r2
 "#;
         let tokens = parser::parse(&SourceUnit::new_anonymous(src.as_bytes().to_vec()));
 
@@ -110,7 +113,10 @@ dbg $pc
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Register {
-                            register: RegisterKind::Regular { id: 0 }
+                            register: RegisterKind::Regular {
+                                id: 0,
+                                mode: RegisterMode::Direct
+                            }
                         }
                     }
                 },
@@ -152,7 +158,10 @@ dbg $pc
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Register {
-                            register: RegisterKind::Regular { id: 5 }
+                            register: RegisterKind::Regular {
+                                id: 5,
+                                mode: RegisterMode::Direct
+                            }
                         }
                     }
                 },
@@ -164,7 +173,10 @@ dbg $pc
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Register {
-                            register: RegisterKind::Regular { id: 0 }
+                            register: RegisterKind::Regular {
+                                id: 0,
+                                mode: RegisterMode::Direct
+                            }
                         }
                     }
                 },
@@ -253,6 +265,86 @@ dbg $pc
                             register: RegisterKind::ProgramCounter
                         }
                     }
+                },
+                Token {
+                    location: Location {
+                        line: 14,
+                        column: 1,
+                        offset: 128,
+                    },
+                    kind: TokenKind::Operation {
+                        operation: String::from("mov")
+                    },
+                },
+                Token {
+                    location: Location {
+                        line: 14,
+                        column: 5,
+                        offset: 132,
+                    },
+                    kind: TokenKind::Argument {
+                        argument: ArgumentToken::Register {
+                            register: RegisterKind::Regular {
+                                id: 0,
+                                mode: RegisterMode::Direct,
+                            },
+                        },
+                    },
+                },
+                Token {
+                    location: Location {
+                        line: 14,
+                        column: 9,
+                        offset: 136,
+                    },
+                    kind: TokenKind::Argument {
+                        argument: ArgumentToken::Register {
+                            register: RegisterKind::Regular {
+                                id: 1,
+                                mode: RegisterMode::Indirect,
+                            },
+                        },
+                    },
+                },
+                Token {
+                    location: Location {
+                        line: 15,
+                        column: 1,
+                        offset: 140,
+                    },
+                    kind: TokenKind::Operation {
+                        operation: String::from("mov")
+                    },
+                },
+                Token {
+                    location: Location {
+                        line: 15,
+                        column: 5,
+                        offset: 144,
+                    },
+                    kind: TokenKind::Argument {
+                        argument: ArgumentToken::Register {
+                            register: RegisterKind::Regular {
+                                id: 0,
+                                mode: RegisterMode::Direct,
+                            },
+                        },
+                    },
+                },
+                Token {
+                    location: Location {
+                        line: 15,
+                        column: 9,
+                        offset: 148,
+                    },
+                    kind: TokenKind::Argument {
+                        argument: ArgumentToken::Register {
+                            register: RegisterKind::Regular {
+                                id: 2,
+                                mode: RegisterMode::Address,
+                            },
+                        },
+                    },
                 },
             ])
         )

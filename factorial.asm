@@ -1,9 +1,9 @@
-dbg "Factorial of 5"
+dbgs "Factorial of 5"
 
 # N
-mov 5 $r0
+mov $r0 5
 # Result
-mov 1 $r1
+mov $r1 1
 
 loop:
 	ble $r0 1 end
@@ -12,5 +12,5 @@ loop:
 	jmp loop
 
 end:
-	dbg "Result:"
+	dbgs "Result:"
 	dbg $r1

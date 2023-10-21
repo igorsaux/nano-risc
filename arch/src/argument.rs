@@ -2,13 +2,12 @@ use std::fmt::Display;
 
 use crate::RegisterKind;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Argument {
     Register { register: RegisterKind },
     Pin { id: usize },
     Int { value: i32 },
     Float { value: f32 },
-    String { value: String },
 }
 
 impl Display for Argument {
@@ -18,7 +17,6 @@ impl Display for Argument {
             Argument::Pin { id } => f.write_fmt(format_args!("p{id}")),
             Argument::Int { value } => Display::fmt(value, f),
             Argument::Float { value } => Display::fmt(value, f),
-            Argument::String { value } => Display::fmt(value, f),
         }
     }
 }

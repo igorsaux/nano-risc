@@ -1,6 +1,6 @@
 use nano_risc_arch::{Assembly, Limits, SourceUnit};
 use nano_risc_asm::{compiler, parser};
-use nano_risc_vm::{VMStatus, Value, VM};
+use nano_risc_vm::{VMStatus, VM};
 use serde::{Deserialize, Serialize};
 use std::{panic, rc::Rc};
 use wasm_bindgen::prelude::*;
@@ -14,10 +14,8 @@ pub fn main() {
 }
 
 #[wasm_bindgen]
-pub fn vm_create(limits: JsValue) -> usize {
-    let limits: Limits = serde_wasm_bindgen::from_value(limits).unwrap_or_default();
-
-    Rc::into_raw(Rc::new(VM::new(limits))) as usize
+pub fn vm_create() -> usize {
+    Rc::into_raw(Rc::new(VM::new(Limits::default()))) as usize
 }
 
 #[wasm_bindgen]
@@ -85,6 +83,13 @@ pub fn vm_get_pc(handle: usize) -> usize {
 }
 
 #[wasm_bindgen]
+pub fn vm_get_sp(handle: usize) -> usize {
+    let vm = unsafe { &mut *(handle as *mut VM) };
+
+    vm.sp()
+}
+
+#[wasm_bindgen]
 pub fn vm_get_status(handle: usize) -> usize {
     let vm = unsafe { &mut *(handle as *mut VM) };
 
@@ -121,10 +126,7 @@ pub fn vm_get_registers(handle: usize) -> js_sys::Array {
     let array = js_sys::Array::new();
 
     for register in vm.registers() {
-        match register {
-            Value::Float { value } => array.push(&JsValue::from_f64(*value as f64)),
-            Value::String { value } => array.push(&JsValue::from_str(value)),
-        };
+        array.push(&JsValue::from_f64(*register as f64));
     }
 
     array

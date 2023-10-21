@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use nano_risc_arch::RegisterKind;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
@@ -61,7 +62,9 @@ fn pin_arg(data: Span) -> IResult<Span, Token, ParsingError> {
             Token {
                 location,
                 kind: TokenKind::Argument {
-                    argument: ArgumentToken::Pin { id: id as usize },
+                    argument: ArgumentToken::Register {
+                        register: RegisterKind::Pin { id: id as usize },
+                    },
                 },
             },
         )
@@ -237,7 +240,7 @@ fn operation_parser(data: Span) -> IResult<Span, String, ParsingError> {
 #[cfg(test)]
 mod tests {
     use crate::parser::{ArgumentToken, Span, Token, TokenKind};
-    use nano_risc_arch::{Location, RegisterKind, SourceUnit};
+    use nano_risc_arch::{Location, RegisterKind, RegisterMode, SourceUnit};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -290,7 +293,10 @@ mod tests {
                     },
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Register {
-                            register: RegisterKind::Regular { id: 1 }
+                            register: RegisterKind::Regular {
+                                id: 1,
+                                mode: RegisterMode::Direct
+                            }
                         }
                     }
                 },
@@ -301,7 +307,9 @@ mod tests {
                         offset: 8
                     },
                     kind: TokenKind::Argument {
-                        argument: ArgumentToken::Pin { id: 4 }
+                        argument: ArgumentToken::Register {
+                            register: RegisterKind::Pin { id: 4 }
+                        }
                     }
                 },
                 Token {

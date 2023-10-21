@@ -83,7 +83,7 @@ mod tests {
     };
 
     use super::Ast;
-    use nano_risc_arch::{Location, RegisterKind, SourceUnit};
+    use nano_risc_arch::{Location, RegisterKind, RegisterMode, SourceUnit};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -125,7 +125,10 @@ add $r0 1 0
                                 },
                                 kind: TokenKind::Argument {
                                     argument: ArgumentToken::Register {
-                                        register: RegisterKind::Regular { id: 0 }
+                                        register: RegisterKind::Regular {
+                                            id: 0,
+                                            mode: RegisterMode::Direct
+                                        }
                                     }
                                 }
                             },

@@ -7,6 +7,8 @@ pub struct Limits {
     pub pins: usize,
     #[serde(alias = "maxAssemblyLength")]
     pub max_assembly_length: usize,
+    #[serde(alias = "stackSize")]
+    pub stack_size: usize,
 }
 
 impl Default for Limits {
@@ -15,6 +17,7 @@ impl Default for Limits {
             regular_registers: 16,
             pins: 8,
             max_assembly_length: 4096,
+            stack_size: 256,
         }
     }
 }

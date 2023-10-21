@@ -8,6 +8,7 @@ mod limits;
 mod location;
 mod opeartion;
 mod register_kind;
+mod register_mode;
 mod source_unit;
 
 pub use argument::Argument;
@@ -20,4 +21,5 @@ pub use limits::Limits;
 pub use location::Location;
 pub use opeartion::Operation;
 pub use register_kind::RegisterKind;
+pub use register_mode::RegisterMode;
 pub use source_unit::SourceUnit;
