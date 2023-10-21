@@ -5,8 +5,10 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Assembly {
-    pub instructions: Vec<Instruction>,
     pub debug_info: Option<DebugInfo>,
+    pub instructions: Vec<Instruction>,
+    pub code_section_size: usize,
+    pub text_section: Vec<u8>,
 }
 
 impl Assembly {
@@ -135,11 +137,17 @@ impl Assembly {
                         },
                     ));
                 }
-
-                return Ok(());
             }
             Operation::Dbgs => {
-                todo!()
+                if args.len() != 1 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 1 argument"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
             }
             Operation::Yield | Operation::Halt => {
                 if !args.is_empty() {
@@ -433,6 +441,45 @@ impl Assembly {
                 ) {
                     return Err(AssemblyError::new(
                         format!("{op}'s first argument accepts only registers"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::Lb | Operation::Lh | Operation::Lw => {
+                if args.len() != 2 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 2 arguments"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+
+                if !matches!(
+                    args[0],
+                    Argument::Register {
+                        register: RegisterKind::Pin { .. }
+                            | RegisterKind::Regular { .. }
+                            | RegisterKind::ProgramCounter
+                    }
+                ) {
+                    return Err(AssemblyError::new(
+                        format!("{op}'s first argument accepts only registers"),
+                        Self::get_loc(dbg),
+                        AssemblyErrorKind::InvalidInstruction {
+                            name: op.to_string(),
+                        },
+                    ));
+                }
+            }
+            Operation::Sb | Operation::Sh | Operation::Sw => {
+                if args.len() != 2 {
+                    return Err(AssemblyError::new(
+                        format!("{op} requires 2 arguments"),
                         Self::get_loc(dbg),
                         AssemblyErrorKind::InvalidInstruction {
                             name: op.to_string(),

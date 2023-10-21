@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod vm_tests {
-    use nano_risc_arch::SourceUnit;
+    use nano_risc_arch::{Limits, SourceUnit};
     use nano_risc_asm::{compiler, parser};
     use nano_risc_vm::{RuntimeErrorKind, VMStatus, VM};
 
     fn create_vm_from(source: &str) -> VM {
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
         let tokens = parser::parse(&unit).unwrap();
-        let assembly = compiler::compile(unit, tokens, None).unwrap();
+        let assembly = compiler::compile(unit, tokens, &Limits::default()).unwrap();
         let mut vm = VM::default();
 
         vm.load_assembly(assembly).unwrap();
@@ -650,7 +650,7 @@ mod vm_tests {
     }
 
     #[test]
-    pub fn math() {
+    fn math() {
         let source = r#"
             sqrt $r0 1
             trunc $r1 1.25
@@ -680,11 +680,70 @@ mod vm_tests {
         assert_eq!(vm.registers()[9], f32::min(9.0, 20.0));
         assert_eq!(vm.registers()[10], f32::log(5.0, 2.0));
     }
+
+    #[test]
+    fn store() {
+        let source = r#"
+            mov $r0 .data
+            mov $r1 .data
+            sb $r1 .data
+
+            add $r1 $r1 1
+            sh $r1 .data
+
+            add $r1 $r1 2
+            sw $r1 .data
+        "#;
+        let mut vm = create_vm_from(source);
+
+        while let VMStatus::Running = vm.tick().unwrap() {}
+
+        let ram = vm.ram();
+        let data = vm.registers()[0] as usize;
+
+        assert_eq!(data, 8);
+        assert_eq!(ram.read(0), Ok(8));
+        assert_eq!(ram.read(1), Ok(8));
+        assert_eq!(ram.read(2), Ok(0));
+        assert_eq!(ram.read(3), Ok(8));
+        assert_eq!(ram.read(4), Ok(0));
+        assert_eq!(ram.read(5), Ok(0));
+        assert_eq!(ram.read(6), Ok(0));
+        assert_eq!(ram.read(7), Ok(0));
+    }
+
+    #[test]
+    fn load() {
+        let source = r#"
+            mov $r9 .data
+            mov $r0 .data
+
+            sb $r0 16
+            lb $r1 $r0
+
+            add $r0 $r0 1
+            sh $r0 32
+            lh $r2 $r0
+
+            add $r0 $r0 2
+            sw $r0 64
+            lw $r3 $r0
+        "#;
+        let mut vm = create_vm_from(source);
+
+        while let VMStatus::Running = vm.tick().unwrap() {}
+
+        assert_eq!(vm.registers()[1], 16.0);
+        assert_eq!(vm.registers()[2], 32.0);
+        assert_eq!(vm.registers()[3], 64.0);
+    }
 }
 
 #[cfg(test)]
 mod compilation_tests {
-    use nano_risc_arch::{Limits, SourceUnit};
+    use nano_risc_arch::{
+        Argument, Instruction, Limits, Operation, RegisterKind, RegisterMode, SourceUnit,
+    };
     use nano_risc_asm::{
         compiler::{self, CompilationErrorKind},
         parser,
@@ -701,7 +760,7 @@ mod compilation_tests {
 
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
         let tokens = parser::parse(&unit).unwrap();
-        let assembly = compiler::compile(unit, tokens, None);
+        let assembly = compiler::compile(unit, tokens, &Limits::default());
 
         assert_eq!(
             assembly.map_err(|err| err.kind().clone()),
@@ -709,6 +768,51 @@ mod compilation_tests {
                 name: String::from("start")
             })
         );
+    }
+
+    #[test]
+    fn constants() {
+        let source = r#"
+            mov $r0 .data
+            mov $r1 .ram_end
+        "#;
+
+        let limits = Limits::default();
+        let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
+        let tokens = parser::parse(&unit).unwrap();
+        let assembly = compiler::compile(unit, tokens, &limits).unwrap();
+
+        assert_eq!(
+            assembly.instructions,
+            vec![
+                Instruction {
+                    operation: Operation::Mov,
+                    arguments: vec![
+                        Argument::Register {
+                            register: RegisterKind::Regular {
+                                id: 0,
+                                mode: RegisterMode::Direct
+                            }
+                        },
+                        Argument::Int { value: 4 }
+                    ]
+                },
+                Instruction {
+                    operation: Operation::Mov,
+                    arguments: vec![
+                        Argument::Register {
+                            register: RegisterKind::Regular {
+                                id: 1,
+                                mode: RegisterMode::Direct
+                            }
+                        },
+                        Argument::Int {
+                            value: limits.ram_length as i32
+                        }
+                    ]
+                }
+            ]
+        )
     }
 
     #[test]
@@ -731,10 +835,10 @@ mod compilation_tests {
         let assembly = compiler::compile(
             unit,
             tokens,
-            Some(&Limits {
-                max_assembly_length: 5,
+            &Limits {
+                ram_length: 5,
                 ..Default::default()
-            }),
+            },
         );
 
         assert_eq!(

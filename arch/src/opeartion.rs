@@ -64,6 +64,12 @@ pub enum Operation {
     Exp,
     Inf,
     Nan,
+    Lb,
+    Lh,
+    Lw,
+    Sb,
+    Sh,
+    Sw,
 }
 
 impl Display for Operation {
@@ -131,6 +137,12 @@ impl Display for Operation {
             Operation::Exp => f.write_str("exp"),
             Operation::Inf => f.write_str("inf"),
             Operation::Nan => f.write_str("nan"),
+            Operation::Lb => f.write_str("lb"),
+            Operation::Lh => f.write_str("lh"),
+            Operation::Lw => f.write_str("lw"),
+            Operation::Sb => f.write_str("sb"),
+            Operation::Sh => f.write_str("sh"),
+            Operation::Sw => f.write_str("sw"),
         }
     }
 }
@@ -152,6 +164,7 @@ impl FromStr for Operation {
             "div" => Ok(Self::Div),
             "mod" => Ok(Self::Mod),
             "dbg" => Ok(Self::Dbg),
+            "dbgs" => Ok(Self::Dbgs),
             "yield" => Ok(Self::Yield),
             "beq" => Ok(Self::Beq),
             "beqz" => Ok(Self::Beqz),
@@ -206,6 +219,12 @@ impl FromStr for Operation {
             "exp" => Ok(Operation::Exp),
             "inf" => Ok(Operation::Inf),
             "nan" => Ok(Operation::Nan),
+            "lb" => Ok(Operation::Lb),
+            "lh" => Ok(Operation::Lh),
+            "lw" => Ok(Operation::Lw),
+            "sb" => Ok(Operation::Sb),
+            "sh" => Ok(Operation::Sh),
+            "sw" => Ok(Operation::Sw),
             _ => Err(OpeartionParseError::UnknownOperation),
         }
     }

@@ -19,11 +19,7 @@ pub fn parse(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
 }
 
 fn regular_register(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
-    alt((
-        regular_indirect_register,
-        regular_address_register,
-        regular_direct_register,
-    ))(data)
+    alt((regular_indirect_register, regular_direct_register))(data)
 }
 
 fn regular_indirect_register(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
@@ -33,18 +29,6 @@ fn regular_indirect_register(data: Span) -> IResult<Span, RegisterKind, ParsingE
             RegisterKind::Regular {
                 id: id as usize,
                 mode: RegisterMode::Indirect,
-            },
-        )
-    })
-}
-
-fn regular_address_register(data: Span) -> IResult<Span, RegisterKind, ParsingError> {
-    preceded(tag("@r"), character::complete::u8)(data).map(|(remain, id)| {
-        (
-            remain,
-            RegisterKind::Regular {
-                id: id as usize,
-                mode: RegisterMode::Address,
             },
         )
     })

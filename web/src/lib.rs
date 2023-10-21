@@ -43,7 +43,7 @@ pub fn vm_load_assembly(handle: usize, code: String) -> JsValue {
         Err(error) => return serde_wasm_bindgen::to_value(&error).unwrap(),
     };
 
-    let assembly = match compiler::compile(unit, tokens, None) {
+    let assembly = match compiler::compile(unit, tokens, &Limits::default()) {
         Ok(assembly) => assembly,
         Err(error) => return serde_wasm_bindgen::to_value(&error).unwrap(),
     };

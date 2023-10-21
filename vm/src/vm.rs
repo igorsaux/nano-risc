@@ -1,4 +1,4 @@
-use crate::{RuntimeError, RuntimeErrorKind, VMStatus};
+use crate::{Ram, RuntimeError, RuntimeErrorKind, VMStatus};
 use nano_risc_arch::{
     Argument, Assembly, AssemblyError, Instruction, Limits, Operation, RegisterKind, RegisterMode,
 };
@@ -15,6 +15,7 @@ pub struct VM {
     sp: usize,
     dbg_callback: Option<DbgCallback>,
     status: VMStatus,
+    ram: Ram,
 }
 
 impl Default for VM {
@@ -63,6 +64,8 @@ impl VM {
             unsafe { stack.set_len(limits.stack_size) };
         }
 
+        let ram = Ram::new(limits.clone());
+
         Self {
             limits,
             registers,
@@ -72,12 +75,22 @@ impl VM {
             sp: 0,
             dbg_callback: None,
             status: VMStatus::Idle,
+            ram,
         }
     }
 
     pub fn load_assembly(&mut self, assembly: Assembly) -> Result<(), AssemblyError> {
         assembly.validate(&self.limits)?;
 
+        self.ram_mut()
+            .write_slice(0, assembly.text_section.as_slice())
+            .map_err(|err| {
+                AssemblyError::new(
+                    err.message().to_string(),
+                    None,
+                    nano_risc_arch::AssemblyErrorKind::TooLarge,
+                )
+            })?;
         self.assembly = Some(assembly);
 
         Ok(())
@@ -89,6 +102,14 @@ impl VM {
 
     pub fn assembly(&self) -> Option<&Assembly> {
         self.assembly.as_ref()
+    }
+
+    pub fn ram(&self) -> &Ram {
+        &self.ram
+    }
+
+    pub fn ram_mut(&mut self) -> &mut Ram {
+        &mut self.ram
     }
 
     pub fn reset(&mut self) {
@@ -209,7 +230,6 @@ impl VM {
                             value,
                         )?;
                     }
-                    RegisterMode::Address => todo!(),
                 }
             }
             RegisterKind::ProgramCounter => self.pc = value as usize,
@@ -337,7 +357,27 @@ impl VM {
                 callback(value.to_string())
             }
             Operation::Dbgs => {
-                todo!()
+                let Some(callback) = &self.dbg_callback else {
+                    return Ok(None);
+                };
+                let Some(assembly) = self.assembly.as_ref() else {
+                    unreachable!()
+                };
+                let address = (self.argument_to_float(&args[0])? as usize)
+                    .saturating_sub(assembly.code_section_size);
+                let mut text_bytes = Vec::new();
+                let mut idx = address;
+
+                while let Ok(b) = self.ram().read(idx) {
+                    if b == 0 {
+                        break;
+                    }
+
+                    text_bytes.push(b);
+                    idx += 1;
+                }
+
+                callback(String::from_utf8_lossy(&text_bytes).to_string())
             }
             Operation::Yield => return Ok(Some(VMStatus::Yield)),
             Operation::Beq
@@ -603,6 +643,86 @@ impl VM {
 
                 self.write_register(*register, result)?;
             }
+            Operation::Lb | Operation::Lh | Operation::Lw => {
+                let Some(assembly) = self.assembly.as_ref() else {
+                    unreachable!()
+                };
+                let Argument::Register { register } = &args[0] else {
+                    return Err(RuntimeError::new(
+                        String::from("Expected register"),
+                        RuntimeErrorKind::InvalidType,
+                    ));
+                };
+                let address = (self.argument_to_float(&args[1])? as usize)
+                    .saturating_sub(assembly.code_section_size);
+
+                match operation {
+                    Operation::Lb => {
+                        let byte1 = self.ram.read(address)?;
+
+                        self.write_register(
+                            *register,
+                            i32::from_le_bytes([byte1, 0, 0, 0]) as f32,
+                        )?;
+                    }
+                    Operation::Lh => {
+                        let byte1 = self.ram.read(address)?;
+                        let byte2 = self.ram.read(address + 1)?;
+
+                        self.write_register(
+                            *register,
+                            i32::from_le_bytes([byte1, byte2, 0, 0]) as f32,
+                        )?;
+                    }
+                    Operation::Lw => {
+                        let byte1 = self.ram.read(address)?;
+                        let byte2 = self.ram.read(address + 1)?;
+                        let byte3 = self.ram.read(address + 2)?;
+                        let byte4 = self.ram.read(address + 3)?;
+
+                        self.write_register(
+                            *register,
+                            i32::from_le_bytes([byte1, byte2, byte3, byte4]) as f32,
+                        )?;
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            Operation::Sb | Operation::Sh | Operation::Sw => {
+                let Some(assembly) = self.assembly.as_ref() else {
+                    unreachable!()
+                };
+                let address = (self.argument_to_float(&args[0])? as usize)
+                    .saturating_sub(assembly.code_section_size);
+                let value = self.argument_to_float(&args[1])? as i32;
+
+                match operation {
+                    Operation::Sb => {
+                        let byte1 = i32::to_le_bytes(value)[0];
+
+                        self.ram_mut().write(address, byte1)?;
+                    }
+                    Operation::Sh => {
+                        let byte1 = i32::to_le_bytes(value)[0];
+                        let byte2 = i32::to_le_bytes(value)[1];
+
+                        self.ram_mut().write(address, byte1)?;
+                        self.ram_mut().write(address + 1, byte2)?;
+                    }
+                    Operation::Sw => {
+                        let byte1 = i32::to_le_bytes(value)[0];
+                        let byte2 = i32::to_le_bytes(value)[1];
+                        let byte3 = i32::to_le_bytes(value)[2];
+                        let byte4 = i32::to_le_bytes(value)[3];
+
+                        self.ram_mut().write(address, byte1)?;
+                        self.ram_mut().write(address + 1, byte2)?;
+                        self.ram_mut().write(address + 2, byte3)?;
+                        self.ram_mut().write(address + 3, byte4)?;
+                    }
+                    _ => unreachable!(),
+                }
+            }
         }
 
         Ok(None)
@@ -616,7 +736,6 @@ impl VM {
                     id: self.registers[id] as usize,
                     mode: RegisterMode::Direct,
                 })?),
-                RegisterMode::Address => todo!(),
             },
             RegisterKind::ProgramCounter => Ok(self.pc as f32),
             RegisterKind::StackPointer => Ok(self.sp as f32),

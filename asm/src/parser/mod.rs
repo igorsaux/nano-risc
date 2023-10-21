@@ -11,8 +11,13 @@ mod token_kind;
 pub use argument_token::ArgumentToken;
 use nano_risc_arch::SourceUnit;
 use nom::{
-    branch::alt, character::complete::multispace0, combinator::eof, multi::many_till,
-    sequence::preceded, Finish,
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{alpha1, alphanumeric1, multispace0},
+    combinator::{eof, recognize},
+    multi::{many0_count, many_till},
+    sequence::{pair, preceded},
+    Finish, IResult,
 };
 use nom_locate::LocatedSpan;
 pub use parsing_error::ParsingError;
@@ -23,6 +28,14 @@ pub(crate) type Span<'a> = LocatedSpan<&'a [u8], SourceUnit>;
 
 pub fn parse(unit: &SourceUnit) -> Result<Vec<Token>, ParsingError> {
     parse_inner(unit)
+}
+
+pub(crate) fn identifier(data: Span) -> IResult<Span, String, ParsingError> {
+    recognize(pair(
+        alt((alpha1, tag("_"))),
+        many0_count(alt((alphanumeric1, tag("_")))),
+    ))(data)
+    .map(|(remain, name)| (remain, String::from_utf8(name.fragment().to_vec()).unwrap()))
 }
 
 fn parse_inner(unit: &SourceUnit) -> Result<Vec<Token>, ParsingError> {
@@ -68,7 +81,6 @@ dbg $sp
 dbg $pc
 
 mov $r0 %r1
-mov $r0 @r2
 "#;
         let tokens = parser::parse(&SourceUnit::new_anonymous(src.as_bytes().to_vec()));
 
@@ -302,46 +314,6 @@ mov $r0 @r2
                             register: RegisterKind::Regular {
                                 id: 1,
                                 mode: RegisterMode::Indirect,
-                            },
-                        },
-                    },
-                },
-                Token {
-                    location: Location {
-                        line: 15,
-                        column: 1,
-                        offset: 140,
-                    },
-                    kind: TokenKind::Operation {
-                        operation: String::from("mov")
-                    },
-                },
-                Token {
-                    location: Location {
-                        line: 15,
-                        column: 5,
-                        offset: 144,
-                    },
-                    kind: TokenKind::Argument {
-                        argument: ArgumentToken::Register {
-                            register: RegisterKind::Regular {
-                                id: 0,
-                                mode: RegisterMode::Direct,
-                            },
-                        },
-                    },
-                },
-                Token {
-                    location: Location {
-                        line: 15,
-                        column: 9,
-                        offset: 148,
-                    },
-                    kind: TokenKind::Argument {
-                        argument: ArgumentToken::Register {
-                            register: RegisterKind::Regular {
-                                id: 2,
-                                mode: RegisterMode::Address,
                             },
                         },
                     },

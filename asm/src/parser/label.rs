@@ -1,39 +1,27 @@
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::{alpha1, line_ending, space1},
-    combinator::eof,
-    sequence::terminated,
-    IResult,
-};
+use nom::{bytes::complete::tag, sequence::terminated, IResult};
 
-use super::{ParsingError, ParsingErrorKind, Span, Token, TokenKind};
+use super::{identifier, ParsingError, ParsingErrorKind, Span, Token, TokenKind};
 
 pub fn parse(data: Span) -> IResult<Span, Vec<Token>, ParsingError> {
     let location = data.extra.find_location(data.location_offset()).unwrap();
 
-    terminated(
-        terminated(alpha1, tag(":")),
-        alt((line_ending, eof, space1)),
-    )(data)
-    .map(|(remain, name)| {
-        (
-            remain,
-            vec![Token {
-                location,
-                kind: TokenKind::Label {
-                    name: String::from_utf8(name.fragment().to_vec()).unwrap(),
-                },
-            }],
-        )
-    })
-    .map_err(|err: nom::Err<ParsingError>| {
-        ParsingError::from_nom_error(
-            String::from("Invalid label"),
-            err,
-            ParsingErrorKind::InvalidLabel,
-        )
-    })
+    terminated(identifier, tag(":"))(data)
+        .map(|(remain, name)| {
+            (
+                remain,
+                vec![Token {
+                    location,
+                    kind: TokenKind::Label { name },
+                }],
+            )
+        })
+        .map_err(|err: nom::Err<ParsingError>| {
+            ParsingError::from_nom_error(
+                String::from("Invalid label"),
+                err,
+                ParsingErrorKind::InvalidLabel,
+            )
+        })
 }
 
 #[cfg(test)]

@@ -14,7 +14,9 @@ use nom::{
     IResult,
 };
 
-use super::{register, ArgumentToken, ParsingError, ParsingErrorKind, Span, Token, TokenKind};
+use super::{
+    identifier, register, ArgumentToken, ParsingError, ParsingErrorKind, Span, Token, TokenKind,
+};
 
 pub fn parse(data: Span) -> IResult<Span, Vec<Token>, ParsingError> {
     alt((self::parse_with_args, self::parse_single))(data)
@@ -174,15 +176,13 @@ fn string_arg(data: Span) -> IResult<Span, Token, ParsingError> {
 fn label_arg(data: Span) -> IResult<Span, Token, ParsingError> {
     let location = data.extra.find_location(data.location_offset()).unwrap();
 
-    alpha1(data).map(|(remain, value)| {
+    identifier(data).map(|(remain, name)| {
         (
             remain,
             Token {
                 location,
                 kind: TokenKind::Argument {
-                    argument: ArgumentToken::Label {
-                        name: String::from_utf8(value.to_vec()).unwrap(),
-                    },
+                    argument: ArgumentToken::Label { name },
                 },
             },
         )
@@ -205,6 +205,22 @@ fn register_arg(data: Span) -> IResult<Span, Token, ParsingError> {
     })
 }
 
+fn constant_arg(data: Span) -> IResult<Span, Token, ParsingError> {
+    let location = data.extra.find_location(data.location_offset()).unwrap();
+
+    preceded(tag("."), identifier)(data).map(|(remain, name)| {
+        (
+            remain,
+            Token {
+                location,
+                kind: TokenKind::Argument {
+                    argument: ArgumentToken::Constant { name },
+                },
+            },
+        )
+    })
+}
+
 fn arg_parser(data: Span) -> IResult<Span, Token, ParsingError> {
     terminated(
         alt((
@@ -214,6 +230,7 @@ fn arg_parser(data: Span) -> IResult<Span, Token, ParsingError> {
             self::float_arg,
             self::int_arg,
             self::string_arg,
+            self::constant_arg,
             self::label_arg,
         )),
         space0,
@@ -221,7 +238,9 @@ fn arg_parser(data: Span) -> IResult<Span, Token, ParsingError> {
     .map(|(remain, arg)| (remain, arg))
     .map_err(|err| {
         ParsingError::from_nom_error(
-            String::from("Expected a register, pin, integer, float, string or label argument"),
+            String::from(
+                "Expected a register, pin, integer, float, string, constant or label argument",
+            ),
             err,
             ParsingErrorKind::InvalidArgument,
         )
@@ -266,7 +285,7 @@ mod tests {
     #[test]
     fn parse_instruction_with_args() {
         let unit = SourceUnit::new_anonymous(
-            "add $r1 p4 78 -99 0xFF -0xDD 12.66 -4.12 \"Hello, world!\" start"
+            "add $r1 p4 78 -99 0xFF -0xDD 12.66 -4.12 \"Hello, world!\" start .data"
                 .as_bytes()
                 .to_vec(),
         );
@@ -393,6 +412,18 @@ mod tests {
                     kind: TokenKind::Argument {
                         argument: ArgumentToken::Label {
                             name: String::from("start")
+                        }
+                    }
+                },
+                Token {
+                    location: Location {
+                        line: 1,
+                        column: 64,
+                        offset: 63
+                    },
+                    kind: TokenKind::Argument {
+                        argument: ArgumentToken::Constant {
+                            name: String::from("data")
                         }
                     }
                 },

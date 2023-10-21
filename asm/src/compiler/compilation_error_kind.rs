@@ -7,4 +7,5 @@ pub enum CompilationErrorKind {
     DuplicateLabel { name: String },
     UnknownLabel { name: String },
     TooLargeAssembly { size: usize },
+    UnknownConstant { name: String },
 }

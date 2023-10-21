@@ -4,5 +4,4 @@ use serde::{Deserialize, Serialize};
 pub enum RegisterMode {
     Direct,
     Indirect,
-    Address,
 }

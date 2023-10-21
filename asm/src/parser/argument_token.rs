@@ -7,4 +7,5 @@ pub enum ArgumentToken {
     Float { value: f32 },
     String { value: String },
     Label { name: String },
+    Constant { name: String },
 }

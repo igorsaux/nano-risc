@@ -17,14 +17,17 @@ pub use syntax_token::SyntaxToken;
 pub fn compile(
     unit: SourceUnit,
     tokens: Vec<Token>,
-    limits: Option<&Limits>,
+    limits: &Limits,
 ) -> Result<Assembly, CompilationError> {
     let ast = Ast::new(&tokens)?;
 
-    let mut source_loc: BTreeMap<usize, Location> = BTreeMap::new();
+    let mut string_positions = BTreeMap::<String, usize>::new();
+    let mut source_loc = BTreeMap::<usize, Location>::new();
     let mut assembly = Assembly {
         instructions: Vec::new(),
         debug_info: None,
+        code_section_size: nano_risc_arch::math::align_to_mult(ast.tokens.len(), 4),
+        text_section: Vec::new(),
     };
 
     for (address, syntax) in ast.tokens.into_iter().enumerate() {
@@ -49,7 +52,35 @@ pub fn compile(
                             ArgumentToken::Register { register } => Argument::Register { register },
                             ArgumentToken::Int { value } => Argument::Int { value },
                             ArgumentToken::Float { value } => Argument::Float { value },
-                            ArgumentToken::String { value } => todo!(),
+                            ArgumentToken::String { value } => {
+                                if string_positions.contains_key(&value) {
+                                    Argument::Int {
+                                        value: string_positions[&value] as i32,
+                                    }
+                                } else {
+                                    let position = (assembly.text_section.len()
+                                        + assembly.code_section_size)
+                                        as i32;
+
+                                    if position == i32::MAX {
+                                        return Err(CompilationError::new(
+                                            format!(
+                                                "Assembly' text section is too large: {position}"
+                                            ),
+                                            syntax.token.location,
+                                            CompilationErrorKind::TooLargeAssembly {
+                                                size: position as usize,
+                                            },
+                                        ));
+                                    }
+
+                                    string_positions.insert(value.clone(), position as usize);
+                                    assembly.text_section.append(&mut value.into_bytes());
+                                    assembly.text_section.push(0);
+
+                                    Argument::Int { value: position }
+                                }
+                            }
                             ArgumentToken::Label { name } => {
                                 if !ast.labels.contains_key(&name) {
                                     return Err(CompilationError::new(
@@ -63,6 +94,21 @@ pub fn compile(
                                     value: ast.labels[&name] as i32,
                                 }
                             }
+                            ArgumentToken::Constant { name } => match name.as_str() {
+                                "data" => Argument::Int {
+                                    value: assembly.code_section_size as i32,
+                                },
+                                "ram_end" => Argument::Int {
+                                    value: limits.ram_length as i32,
+                                },
+                                _ => {
+                                    return Err(CompilationError::new(
+                                        format!("Unknown constant: {name}"),
+                                        syntax.token.location,
+                                        CompilationErrorKind::UnknownConstant { name },
+                                    ))
+                                }
+                            },
                         };
 
                         Ok(arg)
@@ -80,20 +126,14 @@ pub fn compile(
         source_loc.insert(address, syntax.token.location);
         assembly.instructions.push(instruction);
 
-        if let Some(Limits {
-            max_assembly_length,
-            ..
-        }) = limits
-        {
-            let size = assembly.instructions.len();
+        let size = assembly.instructions.len();
 
-            if size >= *max_assembly_length {
-                return Err(CompilationError::new(
-                    format!("Too large assembly file: {size} ({max_assembly_length})"),
-                    Location::default(),
-                    CompilationErrorKind::TooLargeAssembly { size },
-                ));
-            }
+        if size + assembly.text_section.len() >= limits.ram_length {
+            return Err(CompilationError::new(
+                format!("Assembly is too large to be fitted into RAM: {size}"),
+                Location::default(),
+                CompilationErrorKind::TooLargeAssembly { size },
+            ));
         }
     }
 
@@ -106,7 +146,7 @@ pub fn compile(
 mod tests {
     use crate::{compiler, parser};
     use nano_risc_arch::{
-        Argument, Assembly, DebugInfo, Instruction, Location, Operation, RegisterKind,
+        Argument, Assembly, DebugInfo, Instruction, Limits, Location, Operation, RegisterKind,
         RegisterMode, SourceUnit,
     };
     use pretty_assertions::assert_eq;
@@ -123,7 +163,7 @@ mod tests {
 
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
         let tokens = parser::parse(&unit).unwrap();
-        let assembly = compiler::compile(unit, tokens, None);
+        let assembly = compiler::compile(unit, tokens, &Limits::default());
         let mut source_loc = BTreeMap::new();
         let unit = SourceUnit::new_anonymous(source.as_bytes().to_vec());
 
@@ -165,7 +205,9 @@ mod tests {
                         arguments: vec![Argument::Int { value: 1 },]
                     }
                 ],
-                debug_info: Some(DebugInfo { source_loc, unit })
+                debug_info: Some(DebugInfo { source_loc, unit }),
+                text_section: Vec::new(),
+                code_section_size: 4
             })
         )
     }

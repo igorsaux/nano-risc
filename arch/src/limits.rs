@@ -5,10 +5,10 @@ pub struct Limits {
     #[serde(alias = "regularRegisters")]
     pub regular_registers: usize,
     pub pins: usize,
-    #[serde(alias = "maxAssemblyLength")]
-    pub max_assembly_length: usize,
     #[serde(alias = "stackSize")]
     pub stack_size: usize,
+    #[serde(alias = "ramLength")]
+    pub ram_length: usize,
 }
 
 impl Default for Limits {
@@ -16,8 +16,8 @@ impl Default for Limits {
         Self {
             regular_registers: 16,
             pins: 8,
-            max_assembly_length: 4096,
             stack_size: 256,
+            ram_length: 16384,
         }
     }
 }

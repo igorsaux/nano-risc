@@ -9,4 +9,5 @@ pub enum RuntimeErrorKind {
     InvalidRegister { register: RegisterKind },
     InvalidAddress { address: usize },
     StackOverflow,
+    OutOfMemory,
 }

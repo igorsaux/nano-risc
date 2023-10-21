@@ -6,6 +6,7 @@ mod debug_info;
 mod instruction;
 mod limits;
 mod location;
+pub mod math;
 mod opeartion;
 mod register_kind;
 mod register_mode;

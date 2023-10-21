@@ -5,4 +5,5 @@ pub enum AssemblyErrorKind {
     InvalidInstruction { name: String },
     InvalidRegister { id: usize },
     InvalidPin { id: usize },
+    TooLarge,
 }
